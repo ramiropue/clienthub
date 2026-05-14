@@ -1,24 +1,11 @@
-"use client";
+/* global React, ReactDOM, window */
+// ───────────── ClientHub · Main app ─────────────
+const { useState, useEffect } = React;
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { CLIENTS } from "@/lib/mock-data";
-import { Icon } from "@/components/ui/icon";
-import { AvatarCustom } from "@/components/ui/avatar-custom";
-import { ButtonCustom } from "@/components/ui/button-custom";
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleAdminLogin = () => {
-    router.push("/admin");
-  };
-
-  const handleClientLogin = (clientId: string) => {
-    router.push(`/client/${clientId}`);
-  };
+// ───────────── Login screen ─────────────
+function Login({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   return (
     <div className="login-screen">
@@ -61,7 +48,7 @@ export default function LoginPage() {
             Inicia <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>sesión</em>
           </h2>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }} className="col gap-4">
+          <form onSubmit={(e) => {e.preventDefault();onLogin({ role: 'admin' });}} className="col gap-4">
             <div className="field">
               <label>Email</label>
               <input className="input" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -74,11 +61,11 @@ export default function LoginPage() {
               <label className="row gap-2" style={{ color: 'var(--ink-2)' }}>
                 <input type="checkbox" defaultChecked /> Recuérdame
               </label>
-              <a style={{ color: 'var(--ink-2)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
+              <a style={{ color: 'var(--ink-2)' }}>¿Olvidaste tu contraseña?</a>
             </div>
-            <ButtonCustom variant="primary" size="lg" type="submit" style={{ width: '100%', marginTop: 6 }}>
+            <Button variant="primary" size="lg" type="submit" style={{ width: '100%', marginTop: 6 }}>
               Entrar
-            </ButtonCustom>
+            </Button>
           </form>
 
           <div className="row gap-3 mt-6" style={{ alignItems: 'center' }}>
@@ -90,35 +77,103 @@ export default function LoginPage() {
           <div className="col gap-2 mt-4">
             <button
               className="btn btn-ghost"
-              onClick={() => handleAdminLogin()}
+              onClick={() => onLogin({ role: 'admin' })}
               style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
               
-              <AvatarCustom name="Ramiro" color="#161311" size="sm" />
+              <Avatar name="Antía Vázquez" color="#161311" size="sm" />
               <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como Ramiro</span>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como Antía</span>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>Admin · vista completa</span>
               </span>
               <Icon name="arrow_right" size={14} style={{ marginLeft: 'auto', color: 'var(--muted)' }} />
             </button>
 
-            {CLIENTS.map((c) => (
-              <button
-                key={c.id}
-                className="btn btn-ghost"
-                onClick={() => handleClientLogin(c.id)}
-                style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
-                
-                <AvatarCustom name={c.name} color={c.color} initials={c.initials} size="sm" />
+            {CLIENTS.map((c) =>
+            <button
+              key={c.id}
+              className="btn btn-ghost"
+              onClick={() => onLogin({ role: 'client', clientId: c.id })}
+              style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
+              
+                <Avatar name={c.name} color={c.color} initials={c.initials} size="sm" />
                 <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como {c.name}</span>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>Cliente · vista de portal</span>
                 </span>
                 <Icon name="arrow_right" size={14} style={{ marginLeft: 'auto', color: 'var(--muted)' }} />
               </button>
-            ))}
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
+
+// ───────────── Viewport switcher ─────────────
+function ViewportBar({ device, setDevice, session, onLogout }) {
+  const label = session.role === 'admin' ?
+  'Antía · admin' :
+  `${getClient(session.clientId).name} · cliente`;
+
+  return (
+    <div className="viewport-bar">
+      <button
+        className={device === 'desktop' ? 'active' : ''}
+        onClick={() => setDevice('desktop')}>
+        
+        <Icon name="desktop" size={13} /> Desktop
+      </button>
+      <button
+        className={device === 'mobile' ? 'active' : ''}
+        onClick={() => setDevice('mobile')}>
+        
+        <Icon name="mobile" size={13} /> Móvil
+      </button>
+      <span className="vb-divider" />
+      <span className="vb-role">conectado como <b>{label}</b></span>
+      <button onClick={onLogout} style={{ padding: '7px 12px' }}>
+        Cambiar
+      </button>
+    </div>);
+
+}
+
+// ───────────── App root ─────────────
+function App() {
+  const [session, setSession] = useState(null);
+  const [device, setDevice] = useState('desktop');
+  const [works, setWorks] = useState(WORKS_INIT);
+
+  // For client view, default device to mobile
+  useEffect(() => {
+    if (session?.role === 'client') setDevice('mobile');
+    if (session?.role === 'admin') setDevice('desktop');
+  }, [session?.role, session?.clientId]);
+
+  const updateWork = (id, patch) => {
+    setWorks((prev) => prev.map((w) => w.id === id ? { ...w, ...patch } : w));
+  };
+  const addWork = (w) => setWorks((prev) => [w, ...prev]);
+
+  if (!session) return <Login onLogin={setSession} />;
+
+  return (
+    <div className="app-shell">
+      <div className={`viewport-frame ${device}`}>
+        {session.role === 'admin' ?
+        <AdminApp works={works} updateWork={updateWork} addWork={addWork} /> :
+        <ClienteApp clientId={session.clientId} works={works} updateWork={updateWork} />
+        }
+      </div>
+      <ViewportBar
+        device={device}
+        setDevice={setDevice}
+        session={session}
+        onLogout={() => setSession(null)} />
+      
+    </div>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
