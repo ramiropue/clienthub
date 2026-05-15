@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { supabase } from '@/lib/supabase';
 import { Client } from '@/lib/data';
 import { WORK_TYPES, STATUS, eur, getType } from '@/lib/mock-data';
+import { useGooglePicker } from '@/hooks/use-google-picker';
 
 interface NewWorkModalProps {
   open: boolean;
@@ -27,6 +28,10 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
   const [status, setStatus]     = useState<'borrador' | 'aprobado' | 'publicado'>('aprobado');
   const [notes, setNotes]       = useState('');
   const [price, setPrice]       = useState(65);
+  const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string | null>(null);
+  const [previewIcon, setPreviewIcon] = useState<string | null>(null);
+  const [pickerError, setPickerError] = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
 
@@ -49,8 +54,21 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
       setNotes('');
       setStatus('aprobado');
       setError('');
+      setPreviewUrl(null);
+      setPreviewName(null);
+      setPreviewIcon(null);
+      setPickerError(null);
     }
   }, [open]);
+
+  const handlePick = useCallback((file: { id: string; name: string; url: string; mimeType: string; iconUrl: string }) => {
+    setPreviewUrl(file.url);
+    setPreviewName(file.name);
+    setPreviewIcon(file.iconUrl);
+    setPickerError(null);
+  }, []);
+
+  const { openPicker } = useGooglePicker({ onPick: handlePick, onError: setPickerError });
 
   // Close on Escape
   useEffect(() => {
@@ -75,6 +93,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
       status: finalStatus,
       price,
       notes: notes.trim() || null,
+      preview_url: previewUrl || null,
     });
 
     setSaving(false);
@@ -209,11 +228,73 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
             {/* Adjunto */}
             <div className="field">
               <label>Adjuntar previsualización</label>
-              <div className="drop-zone">
-                <Icon name="image" size={20} /><br />
-                Arrastra una imagen o <strong>busca un archivo</strong><br />
-                <span style={{ fontSize: 11 }}>JPG, PNG, MP4 — máx 50MB</span>
-              </div>
+
+              {previewUrl ? (
+                /* ── File selected ── */
+                <div
+                  className="drop-zone"
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 14px',
+                    gap: 10,
+                    cursor: 'default',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
+                    {previewIcon && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewIcon} alt="" width={18} height={18} style={{ flexShrink: 0 }} />
+                    )}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {previewName}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    aria-label="Quitar archivo"
+                    onClick={() => { setPreviewUrl(null); setPreviewName(null); setPreviewIcon(null); }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+              ) : (
+                /* ── Empty drop-zone — click to open Drive picker ── */
+                <div
+                  className="drop-zone"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Seleccionar archivo de Google Drive"
+                  onClick={openPicker}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openPicker(); }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <Icon name="image" size={20} /><br />
+                  <span>
+                    Arrastra una imagen o{' '}
+                    <strong style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                      busca un archivo en Drive
+                    </strong>
+                  </span>
+                  <br />
+                  <span style={{ fontSize: 11 }}>JPG, PNG, MP4, PDF</span>
+                </div>
+              )}
+
+              {pickerError && (
+                <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4 }}>{pickerError}</p>
+              )}
             </div>
 
             {/* Notas */}
