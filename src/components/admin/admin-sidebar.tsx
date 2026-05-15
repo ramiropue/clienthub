@@ -3,16 +3,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CLIENTS } from '@/lib/mock-data';
+import { getClients, Client } from '@/lib/data';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    getClients().then(setClients);
+  }, []);
 
   const items = [
     { id: 'dashboard', label: 'Dashboard',  icon: 'dashboard', href: '/admin' },
-    { id: 'clients',   label: 'Clientes',   icon: 'users', count: CLIENTS.length, href: '/admin/client' },
+    { id: 'clients',   label: 'Clientes',   icon: 'users', count: clients.length, href: '/admin/client' },
     { id: 'calendar',  label: 'Calendario', icon: 'calendar', href: '/admin/calendar' },
     { id: 'invoices',  label: 'Facturación', icon: 'invoice', href: '/admin/invoices' },
   ];
@@ -29,9 +35,9 @@ export function AdminSidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">
+      <Link href="/" className="sidebar-brand" style={{ textDecoration: 'none', cursor: 'pointer' }}>
         <span className="dot-mark" /> ClientHub
-      </div>
+      </Link>
       <div className="nav-group">
         <div className="nav-label">Trabajo</div>
         {items.map(it => (

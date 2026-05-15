@@ -1,28 +1,51 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CLIENTS, WORKS_INIT, CURRENT_MONTH, totalFor, eur, MONTH_NAMES, getClient } from '@/lib/mock-data';
+import { CURRENT_MONTH, totalFor, eur, MONTH_NAMES } from '@/lib/mock-data';
+import { getClients, getWorks, Client, Work } from '@/lib/data';
 import { SectionTitle } from '@/components/shared/section-title';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Icon } from '@/components/ui/icon';
+import { NewWorkModal } from '@/components/admin/new-work-modal';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [works] = useState(WORKS_INIT);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [preselectClientId, setPreselectClientId] = useState<string | null>(null);
   const month = CURRENT_MONTH;
 
-  const totalsByClient = CLIENTS.map(c => ({
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  function loadData() {
+    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+      setClients(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }
+
+  const openNewWork = (clientId?: string) => {
+    setPreselectClientId(clientId || null);
+    setModalOpen(true);
+  };
+
+  const totalsByClient = clients.map(c => ({
     client: c,
     ...totalFor(works, c.id, month.year, month.month),
     pending: works.filter(w => w.clientId === c.id && w.date.getMonth() === month.month && w.status === 'borrador').length
   }));
 
   const totalMonth = totalsByClient.reduce((s, c) => s + c.total, 0);
-  const lastMonthTotal = CLIENTS.reduce((s, c) => s + totalFor(works, c.id, 2026, 3).total, 0);
+  const lastMonthTotal = clients.reduce((s, c) => s + totalFor(works, c.id, 2026, 3).total, 0);
   const deltaPct = Math.round(((totalMonth - lastMonthTotal) / lastMonthTotal) * 100);
   const worksThisMonth = works.filter(w => w.date.getFullYear() === month.year && w.date.getMonth() === month.month);
   const pending = worksThisMonth.filter(w => w.status === 'borrador').length;
@@ -31,10 +54,7 @@ export default function AdminDashboardPage() {
     router.push(`/admin/client/${clientId}`);
   };
 
-  const handleNewWork = () => {
-    // We will implement a NewWorkModal here or redirect to a new page later
-    alert("New Work action");
-  };
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
 
   return (
     <div>
@@ -49,7 +69,7 @@ export default function AdminDashboardPage() {
           <button className="btn btn-ghost btn-sm">
             <Icon name="calendar" size={14} /> Mayo 2026 <Icon name="chevron_down" size={12} />
           </button>
-          <ButtonCustom variant="accent" icon="plus" onClick={handleNewWork}>Nuevo trabajo</ButtonCustom>
+          <ButtonCustom variant="accent" icon="plus" onClick={() => openNewWork()}>Nuevo trabajo</ButtonCustom>
         </div>
       </div>
 
@@ -74,7 +94,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="kpi">
             <div className="kpi-label">Clientes activos</div>
-            <div className="kpi-value">{CLIENTS.length}</div>
+            <div className="kpi-value">{clients.length}</div>
             <div className="kpi-delta">con iguala</div>
           </div>
         </div>
@@ -125,7 +145,7 @@ export default function AdminDashboardPage() {
             <div className="eyebrow">Actividad reciente</div>
             <div className="mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {worksThisMonth.slice().sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 4).map(w => {
-                const c = getClient(w.clientId);
+                const c = clients.find(cl => cl.id === w.clientId);
                 if (!c) return null;
                 return (
                   <div key={w.id} className="row gap-3">
@@ -149,6 +169,14 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      <NewWorkModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        clients={clients}
+        preselectClientId={preselectClientId}
+        onCreated={loadData}
+      />
     </div>
   );
 }

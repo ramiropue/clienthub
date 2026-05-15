@@ -1,15 +1,26 @@
 "use client";
 
-import React, { useState } from 'react';
-import { getClient, WORKS_INIT, CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
+import React, { useState, useEffect } from 'react';
+import { CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
+import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { ButtonCustom } from '@/components/ui/button-custom';
 
 export default function ClienteInvoicePage({ params, searchParams }: { params: { id: string }, searchParams?: { y?: string, m?: string } }) {
   const clientId = params.id;
-  const client = getClient(clientId);
-  const [works] = useState(WORKS_INIT);
+  const [client, setClient] = useState<Client | null>(null);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!client) return <div>Cliente no encontrado</div>;
+  useEffect(() => {
+    Promise.all([getClient(clientId), getWorksForClient(clientId)]).then(([c, w]) => {
+      setClient(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }, [clientId]);
+
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   // determine month
   const yearStr = searchParams?.y;

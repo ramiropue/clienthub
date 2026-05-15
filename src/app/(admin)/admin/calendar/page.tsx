@@ -1,15 +1,28 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CLIENTS, WORKS_INIT } from '@/lib/mock-data';
+import { getClients, getWorks, Client, Work } from '@/lib/data';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { Icon } from '@/components/ui/icon';
 
 export default function AdminCalendarPage() {
   const router = useRouter();
-  const [works] = useState(WORKS_INIT);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+      setClients(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+
   const monthWorks = works.filter(w => w.date.getFullYear() === 2026 && w.date.getMonth() === 4);
 
   return (
@@ -31,7 +44,7 @@ export default function AdminCalendarPage() {
           <MiniCalendar year={2026} month={4} works={monthWorks} />
         </div>
         <div className="row gap-4 mt-6" style={{ flexWrap: 'wrap' }}>
-          {CLIENTS.map(c => {
+          {clients.map(c => {
             const list = monthWorks.filter(w => w.clientId === c.id);
             return (
               <div 

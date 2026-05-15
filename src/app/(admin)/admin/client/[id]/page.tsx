@@ -1,23 +1,39 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClient, WORKS_INIT, CURRENT_MONTH, worksFor, groupByWeek, totalFor, eur, STATUS } from '@/lib/mock-data';
+import { CURRENT_MONTH, worksFor, groupByWeek, totalFor, eur, STATUS } from '@/lib/mock-data';
+import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { WorkRow } from '@/components/shared/work-row';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
+import { NewWorkModal } from '@/components/admin/new-work-modal';
 
 export default function AdminClientDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const clientId = params.id;
-  const client = getClient(clientId);
-  
-  const [works, setWorks] = useState(WORKS_INIT);
+  const [client, setClient] = useState<Client | null>(null);
+  const [works, setWorks] = useState<Work[]>([]);
   const [tab, setTab] = useState('trabajos');
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    loadWorks();
+  }, [clientId]);
+
+  function loadWorks() {
+    Promise.all([getClient(clientId), getWorksForClient(clientId)]).then(([c, w]) => {
+      setClient(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }
   
-  if (!client) return <div>Cliente no encontrado</div>;
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   const month = CURRENT_MONTH;
   const monthWorks = worksFor(works, clientId, month.year, month.month).sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -34,7 +50,7 @@ export default function AdminClientDetailPage({ params }: { params: { id: string
     setWorks((prev) => prev.map((w) => w.id === id ? { ...w, ...patch } : w));
   };
 
-  return (
+  const page = (
     <div>
       <div className="main-header">
         <div className="col gap-2">
@@ -52,7 +68,7 @@ export default function AdminClientDetailPage({ params }: { params: { id: string
         <div className="row gap-2">
           <button className="btn-icon"><Icon name="bell" size={16} /></button>
           <button className="btn-icon"><Icon name="more" size={16} /></button>
-          <ButtonCustom variant="accent" icon="plus" onClick={() => alert("New work for " + client.name)}>Añadir trabajo</ButtonCustom>
+          <ButtonCustom variant="accent" icon="plus" onClick={() => setModalOpen(true)}>Añadir trabajo</ButtonCustom>
         </div>
       </div>
 
@@ -202,5 +218,20 @@ export default function AdminClientDetailPage({ params }: { params: { id: string
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {page}
+      {client && (
+        <NewWorkModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          clients={[client]}
+          preselectClientId={clientId}
+          onCreated={loadWorks}
+        />
+      )}
+    </>
   );
 }

@@ -1,17 +1,28 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClient, WORKS_INIT, totalFor, eur } from '@/lib/mock-data';
+import { totalFor, eur } from '@/lib/mock-data';
+import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 
 export default function ClienteHistoryPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const clientId = params.id;
-  const client = getClient(clientId);
-  const [works] = useState(WORKS_INIT);
+  const [client, setClient] = useState<Client | null>(null);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!client) return <div>Cliente no encontrado</div>;
+  useEffect(() => {
+    Promise.all([getClient(clientId), getWorksForClient(clientId)]).then(([c, w]) => {
+      setClient(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }, [clientId]);
+
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   const months = [
     { y: 2026, m: 4, label: 'Mayo 2026', state: 'En curso' },

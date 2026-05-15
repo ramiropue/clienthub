@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CLIENTS } from "@/lib/mock-data";
+import { getClients, Client } from "@/lib/data";
 import { Icon } from "@/components/ui/icon";
 import { AvatarCustom } from "@/components/ui/avatar-custom";
 import { ButtonCustom } from "@/components/ui/button-custom";
@@ -11,6 +11,11 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    getClients().then(setClients);
+  }, []);
 
   const handleAdminLogin = () => {
     router.push("/admin");
@@ -101,7 +106,7 @@ export default function LoginPage() {
               <Icon name="arrow_right" size={14} style={{ marginLeft: 'auto', color: 'var(--muted)' }} />
             </button>
 
-            {CLIENTS.map((c) => (
+            {clients.map((c) => (
               <button
                 key={c.id}
                 className="btn btn-ghost"

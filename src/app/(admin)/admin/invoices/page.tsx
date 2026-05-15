@@ -1,11 +1,24 @@
 "use client";
 
-import React, { useState } from 'react';
-import { CLIENTS, WORKS_INIT, totalFor, eur } from '@/lib/mock-data';
+import React, { useState, useEffect } from 'react';
+import { totalFor, eur } from '@/lib/mock-data';
+import { getClients, getWorks, Client, Work } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 
 export default function AdminInvoicesPage() {
-  const [works] = useState(WORKS_INIT);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+      setClients(c);
+      setWorks(w);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
 
   const months = [
     { y: 2026, m: 4, label: 'Mayo 2026', status: 'En curso' },
@@ -23,7 +36,7 @@ export default function AdminInvoicesPage() {
       </div>
       <div className="main-content">
         {months.map(mn => {
-          const byClient = CLIENTS.map(c => ({ client: c, total: totalFor(works, c.id, mn.y, mn.m) }));
+          const byClient = clients.map(c => ({ client: c, total: totalFor(works, c.id, mn.y, mn.m) }));
           const sum = byClient.reduce((s, x) => s + x.total.total, 0);
           return (
             <div key={mn.label} className="card mb-4">

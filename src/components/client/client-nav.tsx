@@ -3,19 +3,25 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getClient } from '@/lib/mock-data';
+import { getClient, Client } from '@/lib/data';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 
 export function ClienteTopbar({ clientId }: { clientId: string }) {
-  const client = getClient(clientId);
+  const [client, setClient] = useState<Client | null>(null);
+
+  useEffect(() => {
+    getClient(clientId).then(setClient);
+  }, [clientId]);
+
   if (!client) return null;
 
   return (
     <div className="client-topbar">
-      <div className="brand">
+      <Link href="/" className="brand" style={{ textDecoration: 'none', cursor: 'pointer' }}>
         <span className="dot-mark" /> ClientHub
-      </div>
+      </Link>
       <div className="row gap-3" style={{ alignItems: 'center' }}>
         <button className="btn-icon" style={{ border: 0 }}><Icon name="bell" size={16} /></button>
         <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" />
