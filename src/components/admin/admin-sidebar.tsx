@@ -18,7 +18,7 @@ export function AdminSidebar() {
 
   const items = [
     { id: 'dashboard', label: 'Dashboard',  icon: 'dashboard', href: '/admin' },
-    { id: 'clients',   label: 'Clientes',   icon: 'users', count: clients.length, href: '/admin/client' },
+    { id: 'clients',   label: 'Clientes',   icon: 'users', count: clients.length, href: '/admin/clients' },
     { id: 'calendar',  label: 'Calendario', icon: 'calendar', href: '/admin/calendar' },
     { id: 'invoices',  label: 'Facturación', icon: 'invoice', href: '/admin/invoices' },
   ];
@@ -30,6 +30,9 @@ export function AdminSidebar() {
   // Helper to determine if a route is active
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
+    if (href === '/admin/settings') return pathname === '/admin/settings';
+    // Clients list AND individual client pages should both highlight "Clientes"
+    if (href === '/admin/clients') return pathname.startsWith('/admin/clients') || pathname.startsWith('/admin/client/');
     return pathname.startsWith(href);
   };
 

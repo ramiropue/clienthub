@@ -6,8 +6,8 @@ import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { supabase } from '@/lib/supabase';
-import { Client } from '@/lib/data';
-import { WORK_TYPES, STATUS, eur, getType } from '@/lib/mock-data';
+import { Client, getWorkTypes, WorkType } from '@/lib/data';
+import { STATUS, eur } from '@/lib/mock-data';
 import { useGooglePicker } from '@/hooks/use-google-picker';
 
 interface NewWorkModalProps {
@@ -15,16 +15,17 @@ interface NewWorkModalProps {
   onClose: () => void;
   clients: Client[];
   preselectClientId?: string | null;
+  preselectDate?: string | null;
   onCreated: () => void; // callback to refresh parent data
 }
 
 const today = new Date().toISOString().split('T')[0];
 
-export function NewWorkModal({ open, onClose, clients, preselectClientId, onCreated }: NewWorkModalProps) {
+export function NewWorkModal({ open, onClose, clients, preselectClientId, preselectDate, onCreated }: NewWorkModalProps) {
   const [clientId, setClientId] = useState(preselectClientId || clients[0]?.id || '');
   const [typeId, setTypeId]     = useState('reel');
   const [title, setTitle]       = useState('');
-  const [date, setDate]         = useState(today);
+  const [date, setDate]         = useState(preselectDate || today);
   const [status, setStatus]     = useState<'borrador' | 'aprobado' | 'publicado'>('aprobado');
   const [notes, setNotes]       = useState('');
   const [price, setPrice]       = useState(65);
@@ -34,6 +35,12 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
+
+  // Fetch work types
+  useEffect(() => {
+    getWorkTypes().then(setWorkTypes);
+  }, []);
 
   // Update clientId if preselectClientId changes
   useEffect(() => {
@@ -43,9 +50,9 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
 
   // Auto-set price when work type changes
   useEffect(() => {
-    const t = getType(typeId);
+    const t = workTypes.find(w => w.id === typeId);
     if (t) setPrice(t.price);
-  }, [typeId]);
+  }, [typeId, workTypes]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -53,6 +60,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
       setTitle('');
       setNotes('');
       setStatus('aprobado');
+      setDate(preselectDate || today);
       setError('');
       setPreviewUrl(null);
       setPreviewName(null);
@@ -80,7 +88,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
 
   const handleSubmit = async (overrideStatus?: 'borrador' | 'aprobado' | 'publicado') => {
     const finalStatus = overrideStatus || status;
-    const type = getType(typeId);
+    const type = workTypes.find(w => w.id === typeId);
     setSaving(true);
     setError('');
 
@@ -157,7 +165,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, onCrea
             <div className="field">
               <label>Tipo de trabajo</label>
               <div className="type-grid">
-                {WORK_TYPES.map(t => (
+                {workTypes.map(t => (
                   <button
                     key={t.id}
                     type="button"
