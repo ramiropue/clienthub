@@ -42,6 +42,17 @@ export interface WorkType {
   icon: string;
 }
 
+export interface Settings {
+  id: string;
+  profileName: string;
+  profileRole: string;
+  profileColor: string;
+  profileImageUrl: string | null;
+  companyName: string | null;
+  companyId: string | null;
+  companyAddress: string | null;
+}
+
 function mapClient(c: any): Client {
   return {
     ...c,
@@ -139,4 +150,67 @@ export async function saveWorkType(workType: WorkType, isNew: boolean): Promise<
     return null;
   }
   return mapWorkType(data);
+}
+
+export async function getSettings(): Promise<Settings> {
+  const { data, error } = await supabase.from('settings').select('*').eq('id', 'global').single();
+  if (error || !data) {
+    console.error('Error fetching settings:', error);
+    return {
+      id: 'global',
+      profileName: 'Ramiro',
+      profileRole: 'Social Media · Freelance',
+      profileColor: '#161311',
+      profileImageUrl: null,
+      companyName: null,
+      companyId: null,
+      companyAddress: null,
+    };
+  }
+  return {
+    id: data.id,
+    profileName: data.profile_name,
+    profileRole: data.profile_role,
+    profileColor: data.profile_color,
+    profileImageUrl: data.profile_image_url,
+    companyName: data.company_name,
+    companyId: data.company_id,
+    companyAddress: data.company_address,
+  };
+}
+
+export async function saveSettings(settings: Settings): Promise<Settings | null> {
+  const payload = {
+    id: settings.id,
+    profile_name: settings.profileName,
+    profile_role: settings.profileRole,
+    profile_color: settings.profileColor,
+    profile_image_url: settings.profileImageUrl,
+    company_name: settings.companyName,
+    company_id: settings.companyId,
+    company_address: settings.companyAddress,
+  };
+
+  const { data, error } = await supabase
+    .from('settings')
+    .update(payload)
+    .eq('id', settings.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating settings:', error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    profileName: data.profile_name,
+    profileRole: data.profile_role,
+    profileColor: data.profile_color,
+    profileImageUrl: data.profile_image_url,
+    companyName: data.company_name,
+    companyId: data.company_id,
+    companyAddress: data.company_address,
+  };
 }

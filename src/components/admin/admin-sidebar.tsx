@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getClients, Client } from '@/lib/data';
+import { getClients, Client, getSettings, Settings } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
@@ -11,9 +11,21 @@ import { AvatarCustom } from '@/components/ui/avatar-custom';
 export function AdminSidebar() {
   const pathname = usePathname();
   const [clients, setClients] = useState<Client[]>([]);
+  const [appSettings, setAppSettings] = useState<Settings | null>(null);
+
+  const loadData = async () => {
+    const [clientsData, settingsData] = await Promise.all([getClients(), getSettings()]);
+    setClients(clientsData);
+    setAppSettings(settingsData);
+  };
 
   useEffect(() => {
-    getClients().then(setClients);
+    loadData();
+    
+    // Listen for global settings updates
+    const handleUpdate = () => loadData();
+    window.addEventListener('settings-updated', handleUpdate);
+    return () => window.removeEventListener('settings-updated', handleUpdate);
   }, []);
 
   const items = [
@@ -70,10 +82,19 @@ export function AdminSidebar() {
       </div>
       <div style={{ marginTop: 'auto', padding: 10 }}>
         <div className="row gap-3" style={{ alignItems: 'center' }}>
-          <AvatarCustom name="Ramiro" color="#161311" size="sm" />
+          <AvatarCustom 
+            name={appSettings?.profileName || 'Ramiro'} 
+            color={appSettings?.profileColor || '#161311'} 
+            logoUrl={appSettings?.profileImageUrl}
+            size="sm" 
+          />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 500 }}>Ramiro</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>Social Media · Freelance</div>
+            <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {appSettings?.profileName || 'Ramiro'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {appSettings?.profileRole || 'Social Media · Freelance'}
+            </div>
           </div>
         </div>
       </div>

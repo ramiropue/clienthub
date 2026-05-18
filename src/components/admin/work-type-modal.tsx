@@ -61,7 +61,7 @@ export function WorkTypeModal({ open, onClose, initialData, onSave }: WorkTypeMo
       <div className="modal fade-in" onClick={e => e.stopPropagation()}>
         <div className="row between mb-4" style={{ padding: '22px 24px 0' }}>
           <h3 className="h3 m-0" style={{ fontFamily: 'var(--font-display)', fontSize: 28 }}>{initialData ? 'Editar tipo' : 'Añadir nuevo tipo'}</h3>
-          <button className="btn-icon" onClick={onClose} disabled={loading}><Icon name="x" size={20} /></button>
+          <button className="btn-icon" onClick={onClose} disabled={loading}><Icon name="close" size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>

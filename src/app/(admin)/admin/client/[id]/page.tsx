@@ -421,7 +421,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                       <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 24 }}>
                         <div className="row between mb-4">
                           <h3 className="h3 m-0">Trabajos del {selectedCalendarDate.getDate()} de {MONTH_NAMES[selectedCalendarDate.getMonth()]} de {selectedCalendarDate.getFullYear()}</h3>
-                          <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="x" size={20} /></button>
+                          <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="close" size={20} /></button>
                         </div>
                         
                         <div className="mb-4">

@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { totalFor, eur, MONTH_NAMES } from '@/lib/mock-data';
 import { getClients, getWorks, Client, Work } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 import { SectionTitle } from '@/components/shared/section-title';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
+import { WorkRow } from '@/components/shared/work-row';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -35,11 +37,19 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen]               = useState(false);
   const [preselectClientId, setPreselectClientId] = useState<string | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   // ── month state ────────────────────────────────────────
   const [month, setMonth]           = useState(INITIAL_MONTH);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  const updateWorkStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase.from('works').update({ status: newStatus }).eq('id', id);
+    if (!error) {
+      setWorks(works.map(w => w.id === id ? { ...w, status: newStatus } : w));
+    }
+  };
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -190,27 +200,27 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Quick-nav arrows at the bottom */}
-                <div className="row gap-2" style={{ marginTop: 12, justifyContent: 'space-between' }}>
+                <div className="row" style={{ marginTop: 12, justifyContent: 'space-between' }}>
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1 }}
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 8px', fontSize: 11, gap: 4 }}
                     onClick={() => { setMonth(prevMonth(month)); setPickerOpen(false); }}
                   >
-                    <Icon name="chevron_left" size={12} /> Anterior
+                    <Icon name="chevron_left" size={10} /> Anterior
                   </button>
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1, justifyContent: 'center' }}
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 10px', fontSize: 11 }}
                     onClick={() => { setMonth(INITIAL_MONTH); setPickerOpen(false); }}
                   >
                     Hoy
                   </button>
                   <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ flex: 1, justifyContent: 'flex-end' }}
+                    className="btn btn-ghost"
+                    style={{ padding: '4px 8px', fontSize: 11, gap: 4 }}
                     onClick={() => { setMonth(nextMonth(month)); setPickerOpen(false); }}
                   >
-                    Siguiente <Icon name="chevron_right" size={12} />
+                    Siguiente <Icon name="chevron_right" size={10} />
                   </button>
                 </div>
               </div>
@@ -316,7 +326,12 @@ export default function AdminDashboardPage() {
               <div className="eyebrow">Calendario · {MONTH_NAMES[month.month].toLowerCase()}</div>
               <span className="text-muted" style={{ fontSize: 11, cursor: 'pointer' }} onClick={() => router.push('/admin/calendar')}>Ver todo →</span>
             </div>
-            <MiniCalendar year={month.year} month={month.month} works={worksThisMonth} />
+            <MiniCalendar 
+              year={month.year} 
+              month={month.month} 
+              works={worksThisMonth} 
+              onPickDay={(d) => setSelectedCalendarDate(d)}
+            />
           </div>
         </div>
       </div>
@@ -328,6 +343,57 @@ export default function AdminDashboardPage() {
         preselectClientId={preselectClientId}
         onCreated={loadData}
       />
+
+      {selectedCalendarDate && (
+        <div className="modal-overlay" onClick={() => setSelectedCalendarDate(null)}>
+          <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
+            <div className="row between mb-4">
+              <h3 className="h3 m-0">Trabajos del {selectedCalendarDate.getDate()} de {MONTH_NAMES[selectedCalendarDate.getMonth()]} de {selectedCalendarDate.getFullYear()}</h3>
+              <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="close" size={20} /></button>
+            </div>
+            
+            <div className="mb-4">
+              <ButtonCustom 
+                variant="primary" 
+                icon="plus" 
+                onClick={() => {
+                  setPreselectClientId(null);
+                  setModalOpen(true);
+                }}
+                style={{ width: '100%' }}
+              >
+                Añadir trabajo
+              </ButtonCustom>
+            </div>
+
+            <div className="work-list" style={{ border: 'none', background: 'transparent' }}>
+              {works
+                .filter(w => w.type !== 'herramientas' && w.date.getDate() === selectedCalendarDate.getDate() && w.date.getMonth() === selectedCalendarDate.getMonth() && w.date.getFullYear() === selectedCalendarDate.getFullYear())
+                .map(w => {
+                  const client = clients.find(c => c.id === w.clientId);
+                  return (
+                    <div key={w.id} className="mb-4">
+                      <div 
+                        className="row gap-2 mb-2" 
+                        style={{ fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+                        onClick={() => router.push(`/admin/client/${client?.id}`)}
+                      >
+                        {client && <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" logoUrl={client.logoUrl} />}
+                        {client?.name || 'Cliente desconocido'}
+                      </div>
+                      <WorkRow
+                        work={w}
+                        onClick={() => router.push(`/admin/work/${w.id}`)}
+                        onStatusChange={(newStatus: string) => updateWorkStatus(w.id, newStatus)}
+                        compact
+                      />
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

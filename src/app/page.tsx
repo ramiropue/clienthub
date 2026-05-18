@@ -97,7 +97,7 @@ export default function LoginPage() {
               className="btn btn-ghost"
               onClick={() => handleAdminLogin()}
               style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
-              
+
               <AvatarCustom name="Ramiro" color="#161311" size="sm" />
               <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como Ramiro</span>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 className="btn btn-ghost"
                 onClick={() => handleClientLogin(c.id)}
                 style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
-                
+
                 <AvatarCustom name={c.name} color={c.color} initials={c.initials} size="sm" />
                 <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como {c.name}</span>

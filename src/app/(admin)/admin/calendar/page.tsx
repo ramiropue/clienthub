@@ -77,7 +77,7 @@ export default function AdminCalendarPage() {
               <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
                 <div className="row between mb-4">
                   <h3 className="h3 m-0">Trabajos del {selectedCalendarDate.getDate()} de {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][selectedCalendarDate.getMonth()]} de {selectedCalendarDate.getFullYear()}</h3>
-                  <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="x" size={20} /></button>
+                  <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="close" size={20} /></button>
                 </div>
                 
                 <div className="mb-4">
