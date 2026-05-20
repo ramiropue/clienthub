@@ -84,7 +84,7 @@ function AvatarPreview({ accountName, color, logoPreview, onUploadClick, onRemov
             justifyContent: 'center',
             fontSize: 22,
             fontWeight: 500,
-            letterSpacing: '-0.01em',
+            letterSpacing: 0,
             border: '1px solid rgba(0,0,0,.04)',
             flexShrink: 0,
           }}
@@ -389,7 +389,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
               />
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.01em', marginBottom: 2 }}>
+                <div style={{ fontWeight: 600, fontSize: 15, letterSpacing: 0, marginBottom: 2 }}>
                   {accountName || <span style={{ color: 'var(--muted)' }}>Nombre de la cuenta</span>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>

@@ -111,7 +111,7 @@ export default function LoginPage() {
       <div className="login-form-wrap">
         <div className="login-form">
           <div className="eyebrow mb-2">Bienvenida de vuelta</div>
-          <h2 className="display" style={{ fontSize: 44, margin: '4px 0 28px', letterSpacing: '-0.015em' }}>
+          <h2 className="display" style={{ fontSize: 44, margin: '4px 0 28px', letterSpacing: 0 }}>
             Inicia <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>sesión</em>
           </h2>
 

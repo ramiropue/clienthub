@@ -303,7 +303,9 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
           <div className="row gap-2" style={{ alignItems: 'center' }}>
-            <NotificationsBell recipient="admin" clientId={clientId} align="right" />
+            <div className="hide-mobile">
+              <NotificationsBell recipient="admin" clientId={clientId} align="right" />
+            </div>
             
             {/* Three dots dropdown */}
             <div style={{ position: 'relative' }}>

@@ -228,7 +228,9 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          <NotificationsBell recipient="admin" align="right" />
+          <div className="hide-mobile">
+            <NotificationsBell recipient="admin" align="right" />
+          </div>
           <ButtonCustom variant="accent" icon="plus" onClick={() => openNewWork()}>Nuevo trabajo</ButtonCustom>
         </div>
       </div>

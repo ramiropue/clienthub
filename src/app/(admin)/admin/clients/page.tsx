@@ -64,7 +64,7 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
               logoUrl={client.logoUrl}
             />
             <div>
-              <div style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+              <div style={{ fontWeight: 600, fontSize: 15, letterSpacing: 0, lineHeight: 1.2 }}>
                 {client.name}
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
@@ -86,7 +86,7 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
               fontFamily: 'var(--font-display)',
               fontSize: 22,
               lineHeight: 1,
-              letterSpacing: '-0.015em',
+              letterSpacing: 0,
             }}>
               {eur(totals.total)}
             </div>
@@ -97,7 +97,7 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
               fontFamily: 'var(--font-display)',
               fontSize: 22,
               lineHeight: 1,
-              letterSpacing: '-0.015em',
+              letterSpacing: 0,
             }}>
               {totals.count}
             </div>
@@ -218,7 +218,7 @@ export default function ClientsPage() {
         {/* ── Summary strip ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: 12,
           marginBottom: 24,
         }}>
@@ -293,7 +293,7 @@ export default function ClientsPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: 16,
           }}>
             {filtered.map(client => (
