@@ -84,12 +84,14 @@ export function AdminMobileBottomNav() {
     { id: 'clients',   label: 'Clientes', icon: 'users', count: clients.length, href: '/admin/clients' },
     { id: 'calendar',  label: 'Calendario', icon: 'calendar', href: '/admin/calendar' },
     { id: 'invoices',  label: 'Facturas', icon: 'invoice', href: '/admin/invoices' },
+    { id: 'types',     label: 'Tipos', icon: 'wrench', href: '/admin/settings/types' },
     { id: 'settings',  label: 'Ajustes', icon: 'settings', href: '/admin/settings' },
   ];
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
-    if (href === '/admin/settings') return pathname.startsWith('/admin/settings');
+    if (href === '/admin/settings') return pathname === '/admin/settings';
+    if (href === '/admin/settings/types') return pathname.startsWith('/admin/settings/types');
     if (href === '/admin/clients') return pathname.startsWith('/admin/clients') || pathname.startsWith('/admin/client/');
     return pathname.startsWith(href);
   };
@@ -105,8 +107,8 @@ export function AdminMobileBottomNav() {
       borderTop: '1px solid var(--line)',
       padding: '8px 8px 14px',
       display: 'grid',
-      gridTemplateColumns: 'repeat(5, 1fr)',
-      gap: 4,
+      gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+      gap: 2,
       zIndex: 99
     }}>
       {items.map(it => (
@@ -116,13 +118,13 @@ export function AdminMobileBottomNav() {
           style={{
             background: 'transparent',
             border: 0,
-            padding: '8px 4px 6px',
+            padding: '8px 2px 6px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: 4,
             color: isActive(it.href) ? 'var(--ink)' : 'var(--muted)',
-            fontSize: 10,
+            fontSize: 9.5,
             fontWeight: isActive(it.href) ? 500 : 400,
             cursor: 'pointer',
             textDecoration: 'none',
@@ -130,7 +132,7 @@ export function AdminMobileBottomNav() {
           }}
         >
           <div style={{ position: 'relative', display: 'inline-flex' }}>
-            <Icon name={it.icon} size={20} stroke={isActive(it.href) ? 1.8 : 1.5} />
+            <Icon name={it.icon} size={19} stroke={isActive(it.href) ? 1.8 : 1.5} />
             {it.count != null && it.count > 0 && (
               <span style={{
                 position: 'absolute',
@@ -148,7 +150,9 @@ export function AdminMobileBottomNav() {
               </span>
             )}
           </div>
-          <span>{it.label}</span>
+          <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {it.label}
+          </span>
         </Link>
       ))}
     </nav>
