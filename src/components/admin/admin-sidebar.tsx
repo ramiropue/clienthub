@@ -7,6 +7,7 @@ import { getClients, Client, getSettings, Settings } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
+import { NotificationsBell } from '@/components/shared/notifications-bell';
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -81,6 +82,10 @@ export function AdminSidebar() {
         ))}
       </div>
       <div style={{ marginTop: 'auto', padding: 10 }}>
+        {/* Notification bell */}
+        <div style={{ padding: '4px 0 8px' }}>
+          <NotificationsBell recipient="admin" align="left" />
+        </div>
         <div className="row gap-3" style={{ alignItems: 'center' }}>
           <AvatarCustom 
             name={appSettings?.profileName || 'Ramiro'} 

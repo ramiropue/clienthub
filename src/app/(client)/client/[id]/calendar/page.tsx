@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { CURRENT_MONTH, worksFor, TODAY, MONTH_NAMES } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 import { WorkRow } from '@/components/shared/work-row';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
 
-export default function ClienteCalendarPage({ params }: { params: { id: string } }) {
-  const clientId = params.id;
+export default function ClienteCalendarPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
+  const unwrappedParams = use(params);
+  const clientId = unwrappedParams.id;
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,7 @@ export default function ClienteCalendarPage({ params }: { params: { id: string }
   const monthWorks = worksFor(works, client.id, CURRENT_MONTH.year, CURRENT_MONTH.month);
 
   const handleOpenWork = (workId: string) => {
-    alert(`Open work ${workId}`);
+    router.push(`/client/${clientId}/work/${workId}`);
   };
 
   return (

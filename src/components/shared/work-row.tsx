@@ -37,7 +37,7 @@ export function WorkRow({ work, onClick, onStatusChange, showStatus = true, show
           </>}
         </div>
       </div>
-      {showStatus && (
+      {showStatus && type?.group === 'contenido' && (
         <div className="work-status-cell" onClick={(e) => {
           if (onStatusChange) {
             e.stopPropagation();

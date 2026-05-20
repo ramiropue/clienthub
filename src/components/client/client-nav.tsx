@@ -7,6 +7,7 @@ import { getClient, Client } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
+import { NotificationsBell } from '@/components/shared/notifications-bell';
 
 export function ClienteTopbar({ clientId }: { clientId: string }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -23,7 +24,7 @@ export function ClienteTopbar({ clientId }: { clientId: string }) {
         <span className="dot-mark" /> ClientHub
       </Link>
       <div className="row gap-3" style={{ alignItems: 'center' }}>
-        <button className="btn-icon" style={{ border: 0 }}><Icon name="bell" size={16} /></button>
+        <NotificationsBell recipient="client" clientId={clientId} />
         <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" />
       </div>
     </div>

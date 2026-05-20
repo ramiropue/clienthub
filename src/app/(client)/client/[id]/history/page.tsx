@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { totalFor, eur } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 
-export default function ClienteHistoryPage({ params }: { params: { id: string } }) {
+export default function ClienteHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const clientId = params.id;
+  const unwrappedParams = use(params);
+  const clientId = unwrappedParams.id;
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);

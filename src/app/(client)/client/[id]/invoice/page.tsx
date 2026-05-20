@@ -1,12 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { ButtonCustom } from '@/components/ui/button-custom';
 
-export default function ClienteInvoicePage({ params, searchParams }: { params: { id: string }, searchParams?: { y?: string, m?: string } }) {
-  const clientId = params.id;
+export default function ClienteInvoicePage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ y?: string; m?: string }>;
+}) {
+  const unwrappedParams = use(params);
+  const unwrappedSearchParams = use(searchParams);
+  const clientId = unwrappedParams.id;
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,8 +31,8 @@ export default function ClienteInvoicePage({ params, searchParams }: { params: {
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   // determine month
-  const yearStr = searchParams?.y;
-  const monthStr = searchParams?.m;
+  const yearStr = unwrappedSearchParams?.y;
+  const monthStr = unwrappedSearchParams?.m;
   const my = (yearStr && monthStr) 
     ? { year: parseInt(yearStr), month: parseInt(monthStr) }
     : CURRENT_MONTH;

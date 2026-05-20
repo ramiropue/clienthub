@@ -31,6 +31,8 @@ export interface Work {
   price: number;
   thumb: string | null;
   notes: string | null;
+  publishedBy?: string | null;
+  publishedAt?: Date | null;
 }
 
 export interface WorkType {
@@ -71,7 +73,9 @@ function mapWork(w: any): Work {
   return {
     ...w,
     clientId: w.client_id,
-    date: new Date(w.date)
+    date: new Date(w.date),
+    publishedBy: w.published_by ?? null,
+    publishedAt: w.published_at ? new Date(w.published_at) : null
   };
 }
 
@@ -213,4 +217,73 @@ export async function saveSettings(settings: Settings): Promise<Settings | null>
     companyId: data.company_id,
     companyAddress: data.company_address,
   };
+}
+
+export interface AppNotification {
+  id: string;
+  clientId: string;
+  recipient: 'admin' | 'client';
+  title: string;
+  message: string;
+  type: 'estado' | 'mensaje' | 'nuevo_trabajo';
+  workId?: string | null;
+  read: boolean;
+  createdAt: Date;
+}
+
+function mapNotification(n: any): AppNotification {
+  return {
+    id: n.id,
+    clientId: n.client_id,
+    recipient: n.recipient as 'admin' | 'client',
+    title: n.title,
+    message: n.message,
+    type: n.type as 'estado' | 'mensaje' | 'nuevo_trabajo',
+    workId: n.work_id ?? null,
+    read: n.read,
+    createdAt: new Date(n.created_at)
+  };
+}
+
+export async function getNotifications(recipient: 'admin' | 'client', clientId?: string): Promise<AppNotification[]> {
+  let query = supabase.from('notifications').select('*').eq('recipient', recipient);
+  if (clientId) {
+    query = query.eq('client_id', clientId);
+  }
+  query = query.order('created_at', { ascending: false });
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+  return (data || []).map(mapNotification);
+}
+
+export async function createNotification(n: Omit<AppNotification, 'id' | 'read' | 'createdAt'>): Promise<AppNotification | null> {
+  const payload = {
+    client_id: n.clientId,
+    recipient: n.recipient,
+    title: n.title,
+    message: n.message,
+    type: n.type,
+    work_id: n.workId || null,
+    read: false
+  };
+
+  const { data, error } = await supabase.from('notifications').insert([payload]).select().single();
+  if (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+  return mapNotification(data);
+}
+
+export async function markNotificationsAsRead(ids: string[]): Promise<boolean> {
+  const { error } = await supabase.from('notifications').update({ read: true }).in('id', ids);
+  if (error) {
+    console.error('Error marking notifications as read:', error);
+    return false;
+  }
+  return true;
 }

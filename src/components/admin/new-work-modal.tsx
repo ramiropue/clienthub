@@ -6,7 +6,7 @@ import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { supabase } from '@/lib/supabase';
-import { Client, getWorkTypes, WorkType } from '@/lib/data';
+import { Client, getWorkTypes, WorkType, createNotification } from '@/lib/data';
 import { STATUS, eur } from '@/lib/mock-data';
 import { useGooglePicker } from '@/hooks/use-google-picker';
 
@@ -89,14 +89,16 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   const handleSubmit = async (overrideStatus?: 'borrador' | 'aprobado' | 'publicado') => {
     const finalStatus = overrideStatus || status;
     const type = workTypes.find(w => w.id === typeId);
+    const workTitle = title.trim() || (type?.name ?? typeId);
+    const newWorkId = 'w-' + Date.now();
     setSaving(true);
     setError('');
 
     const { error: err } = await supabase.from('works').insert({
-      id: 'w-' + Date.now(),
+      id: newWorkId,
       client_id: clientId,
       type: typeId,
-      title: title.trim() || (type?.name ?? typeId),
+      title: workTitle,
       date,
       status: finalStatus,
       price,
@@ -111,9 +113,25 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
       return;
     }
 
+    // Notify client: new work created for them
+    const selectedClient = clients.find(c => c.id === clientId);
+    if (selectedClient && type?.group === 'contenido') {
+      await createNotification({
+        clientId,
+        recipient: 'client',
+        title: '📌 Nueva pieza programada',
+        message: `"${workTitle}" ha sido añadida a tu calendario para revisar.`,
+        type: 'nuevo_trabajo',
+        workId: newWorkId,
+      });
+    }
+
     onCreated();
     onClose();
   };
+
+  const selectedType = workTypes.find(w => w.id === typeId);
+  const isContenido = !selectedType || selectedType.group === 'contenido';
 
   if (!open) return null;
 
@@ -217,21 +235,23 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
             </div>
 
             {/* Estado */}
-            <div className="field">
-              <label>Estado</label>
-              <div className="status-picker">
-                {(Object.entries(STATUS) as [string, { label: string; className: string }][]).map(([k, s]) => (
-                  <span
-                    key={k}
-                    className={`badge ${s.className} ${status === k ? 'selected' : ''}`}
-                    onClick={() => setStatus(k as 'borrador' | 'aprobado' | 'publicado')}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <span className="dot" /> {s.label}
-                  </span>
-                ))}
+            {isContenido && (
+              <div className="field">
+                <label>Estado</label>
+                <div className="status-picker">
+                  {(Object.entries(STATUS) as [string, { label: string; className: string }][]).map(([k, s]) => (
+                    <span
+                      key={k}
+                      className={`badge ${s.className} ${status === k ? 'selected' : ''}`}
+                      onClick={() => setStatus(k as 'borrador' | 'aprobado' | 'publicado')}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <span className="dot" /> {s.label}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Adjunto */}
             <div className="field">
@@ -327,13 +347,15 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
           <ButtonCustom variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </ButtonCustom>
-          <ButtonCustom
-            variant="primary"
-            onClick={() => handleSubmit('borrador')}
-            disabled={saving}
-          >
-            {saving ? 'Guardando…' : 'Guardar borrador'}
-          </ButtonCustom>
+          {isContenido && (
+            <ButtonCustom
+              variant="primary"
+              onClick={() => handleSubmit('borrador')}
+              disabled={saving}
+            >
+              {saving ? 'Guardando…' : 'Guardar borrador'}
+            </ButtonCustom>
+          )}
           <ButtonCustom
             variant="accent"
             icon="check"

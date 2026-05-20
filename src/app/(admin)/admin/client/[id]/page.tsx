@@ -11,7 +11,7 @@ import { MiniCalendar } from '@/components/shared/mini-calendar';
 import { NewWorkModal } from '@/components/admin/new-work-modal';
 import { NewClientModal } from '@/components/admin/new-client-modal';
 import { supabase } from '@/lib/supabase';
-import { eur, STATUS } from '@/lib/mock-data';
+import { eur, STATUS, getType } from '@/lib/mock-data';
 
 // Helper for filtering works
 function worksFor(works: Work[], clientId: string, year: number, month: number) {
@@ -161,7 +161,12 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
   const currentMonthNum = currentDate.getMonth();
 
   const monthWorksAll = worksFor(works, clientId, currentYear, currentMonthNum).sort((a, b) => b.date.getTime() - a.date.getTime());
-  const monthWorksFiltered = monthWorksAll.filter(w => filterStatus === 'Todo' || w.status.toLowerCase() === filterStatus.toLowerCase());
+  const monthWorksFiltered = monthWorksAll.filter(w => {
+    if (filterStatus === 'Todo') return true;
+    const typeDef = getType(w.type);
+    if (typeDef?.group !== 'contenido') return false;
+    return w.status.toLowerCase() === filterStatus.toLowerCase();
+  });
   const groups = groupByWeek(monthWorksFiltered);
   
   const totals = totalFor(works, clientId, currentYear, currentMonthNum, client?.monthlyRetainer || 0);

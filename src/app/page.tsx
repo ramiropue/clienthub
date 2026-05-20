@@ -17,12 +17,20 @@ export default function LoginPage() {
     getClients().then(setClients);
   }, []);
 
-  const handleAdminLogin = () => {
-    router.push("/admin");
-  };
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
 
-  const handleClientLogin = (clientId: string) => {
-    router.push(`/client/${clientId}`);
+    // Check if the email matches one of the clients
+    const matchedClient = clients.find(
+      c => c.email?.toLowerCase().trim() === email.toLowerCase().trim()
+    );
+
+    if (matchedClient) {
+      router.push(`/client/${matchedClient.id}`);
+    } else {
+      router.push("/admin");
+    }
   };
 
   return (
@@ -66,7 +74,7 @@ export default function LoginPage() {
             Inicia <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>sesión</em>
           </h2>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }} className="col gap-4">
+          <form onSubmit={handleLoginSubmit} className="col gap-4">
             <div className="field">
               <label>Email</label>
               <input className="input" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -95,7 +103,7 @@ export default function LoginPage() {
           <div className="col gap-2 mt-4">
             <button
               className="btn btn-ghost"
-              onClick={() => handleAdminLogin()}
+              onClick={() => router.push("/admin")}
               style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
 
               <AvatarCustom name="Ramiro" color="#161311" size="sm" />
@@ -110,7 +118,7 @@ export default function LoginPage() {
               <button
                 key={c.id}
                 className="btn btn-ghost"
-                onClick={() => handleClientLogin(c.id)}
+                onClick={() => router.push(`/client/${c.id}`)}
                 style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
 
                 <AvatarCustom name={c.name} color={c.color} initials={c.initials} size="sm" />

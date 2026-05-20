@@ -91,7 +91,7 @@ export default function AdminTypesPage() {
                         setEditingType(t);
                         setModalOpen(true);
                       }}>
-                        <Icon name="more_horiz" size={16} />
+                        <Icon name="edit" size={16} />
                       </button>
                     </div>
                     <div className="mt-2" style={{ padding: '8px 12px', background: 'var(--bg)', borderRadius: 6, display: 'inline-flex', alignSelf: 'flex-start' }}>
