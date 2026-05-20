@@ -74,7 +74,7 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
           Facturación acumulada de este mes
         </div>
         <div className="breakdown">
-          <span className="chip"><span className="lbl">Iguala</span> <span className="val mono">{eur(totals.retainer)}</span></span>
+          <span className="chip"><span className="lbl">Cuota mensual</span> <span className="val mono">{eur(totals.retainer)}</span></span>
           <span className="chip"><span className="lbl">Extras</span> <span className="val mono">{eur(totals.variable)}</span></span>
           <span className="chip"><span className="lbl">Piezas</span> <span className="val">{totals.count}</span></span>
         </div>

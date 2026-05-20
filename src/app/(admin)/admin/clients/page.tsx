@@ -103,7 +103,7 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
             </div>
           </div>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Iguala</div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Cuota mensual</div>
             <div style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 14,
@@ -225,7 +225,7 @@ export default function ClientsPage() {
           <div className="kpi">
             <div className="kpi-label">Clientes activos</div>
             <div className="kpi-value">{clients.length}</div>
-            <div className="kpi-delta">con iguala</div>
+            <div className="kpi-delta">con cuota activa</div>
           </div>
           <div className="kpi accent">
             <div className="kpi-label">Facturado — {MONTH_NAMES[CM].toLowerCase()}</div>

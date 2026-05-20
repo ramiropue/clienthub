@@ -13,6 +13,7 @@ import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Icon } from '@/components/ui/icon';
 import { NewWorkModal } from '@/components/admin/new-work-modal';
+import { NotificationsBell } from '@/components/shared/notifications-bell';
 
 // ── helpers ────────────────────────────────────────────────
 const now = new Date();
@@ -227,6 +228,7 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
+          <NotificationsBell recipient="admin" align="right" />
           <ButtonCustom variant="accent" icon="plus" onClick={() => openNewWork()}>Nuevo trabajo</ButtonCustom>
         </div>
       </div>
@@ -253,7 +255,7 @@ export default function AdminDashboardPage() {
           <div className="kpi">
             <div className="kpi-label">Clientes activos</div>
             <div className="kpi-value">{clients.length}</div>
-            <div className="kpi-delta">con iguala</div>
+            <div className="kpi-delta">con cuota mensual</div>
           </div>
         </div>
 
@@ -271,7 +273,7 @@ export default function AdminDashboardPage() {
         <div className="client-table">
           <div className="client-row head">
             <div>Cliente</div>
-            <div>Iguala</div>
+            <div>Cuota mensual</div>
             <div>Trabajos</div>
             <div>Extras</div>
             <div style={{ textAlign: 'right' }}>Total {MONTH_NAMES[month.month].slice(0, 3).toLowerCase()}.</div>

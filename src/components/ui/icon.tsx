@@ -39,6 +39,7 @@ const I: Record<string, React.ReactNode> = {
   trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></>,
   receipt: <path d="M5 2h14v20l-3.5-2L12 22l-3.5-2L5 22V2Z M8 8h8 M8 12h8 M8 16h5" />,
   external: <><path d="M14 4h6v6" /><path d="M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,
+  logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></>,
 };
 
 export function Icon({ 

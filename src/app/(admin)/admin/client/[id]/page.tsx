@@ -12,6 +12,7 @@ import { NewWorkModal } from '@/components/admin/new-work-modal';
 import { NewClientModal } from '@/components/admin/new-client-modal';
 import { supabase } from '@/lib/supabase';
 import { eur, STATUS, getType } from '@/lib/mock-data';
+import { NotificationsBell } from '@/components/shared/notifications-bell';
 
 // Helper for filtering works
 function worksFor(works: Work[], clientId: string, year: number, month: number) {
@@ -302,7 +303,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
           <div className="row gap-2" style={{ alignItems: 'center' }}>
-            <button className="btn-icon"><Icon name="bell" size={16} /></button>
+            <NotificationsBell recipient="admin" clientId={clientId} align="right" />
             
             {/* Three dots dropdown */}
             <div style={{ position: 'relative' }}>
@@ -468,7 +469,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                       <div key={m.label} className="history-row fade-in" style={{ padding: '18px 22px' }}>
                         <div className="col" style={{ gap: 2, flex: 1 }}>
                           <div className="h-month">{m.label}</div>
-                          <div className="h-meta">{t.count} piezas · iguala {eur(t.retainer)}</div>
+                          <div className="h-meta">{t.count} piezas · cuota mensual {eur(t.retainer)}</div>
                         </div>
                         {m.isCurrent && <span className="badge badge-accent"><span className="dot" /> En curso</span>}
                         <div className="h-amount">{eur(t.total)}</div>
@@ -549,10 +550,10 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               <div className="total">
                 {eur(totals.total).replace('€','')}<em>€</em>
               </div>
-              <div className="total-sub">{totals.count} trabajos + iguala mensual</div>
+              <div className="total-sub">{totals.count} trabajos + cuota mensual</div>
 
               <div className="line-item">
-                <span className="label">{client.retainerLabel || 'Iguala'}</span>
+                <span className="label">{client.retainerLabel || 'Cuota mensual'}</span>
                 <span className="amount">{eur(totals.retainer)}</span>
               </div>
               <div className="line-item">
@@ -631,7 +632,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               {/* Retainer Line */}
               <tr>
                 <td style={{ padding: '20px 0', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 500, fontSize: '15px' }}>{client.retainerLabel || 'Iguala mensual'}</div>
+                  <div style={{ fontWeight: 500, fontSize: '15px' }}>{client.retainerLabel || 'Cuota mensual'}</div>
                   <div style={{ color: '#777', fontSize: '13px', marginTop: '4px' }}>Cuota fija acordada</div>
                 </td>
                 <td style={{ padding: '20px 0', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '15px' }}>1</td>

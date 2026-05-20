@@ -2,15 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { getClients, Client, getSettings, Settings } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
-import { NotificationsBell } from '@/components/shared/notifications-bell';
+import { createClient } from '@/lib/supabase/client';
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [appSettings, setAppSettings] = useState<Settings | null>(null);
 
@@ -49,6 +51,11 @@ export function AdminSidebar() {
     return pathname.startsWith(href);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
   return (
     <aside className="sidebar">
       <Link href="/" className="sidebar-brand" style={{ textDecoration: 'none', cursor: 'pointer' }}>
@@ -82,10 +89,6 @@ export function AdminSidebar() {
         ))}
       </div>
       <div style={{ marginTop: 'auto', padding: 10 }}>
-        {/* Notification bell */}
-        <div style={{ padding: '4px 0 8px' }}>
-          <NotificationsBell recipient="admin" align="left" />
-        </div>
         <div className="row gap-3" style={{ alignItems: 'center' }}>
           <AvatarCustom 
             name={appSettings?.profileName || 'Ramiro'} 
@@ -101,6 +104,26 @@ export function AdminSidebar() {
               {appSettings?.profileRole || 'Social Media · Freelance'}
             </div>
           </div>
+          <button 
+            onClick={handleLogout} 
+            title="Cerrar sesión"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '6px 8px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              color: 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}
+          >
+            <Icon name="logout" size={16} />
+          </button>
         </div>
       </div>
     </aside>

@@ -1,36 +1,77 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getClients, Client } from "@/lib/data";
-import { Icon } from "@/components/ui/icon";
-import { AvatarCustom } from "@/components/ui/avatar-custom";
 import { ButtonCustom } from "@/components/ui/button-custom";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    getClients().then(setClients);
-  }, []);
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-
-    // Check if the email matches one of the clients
-    const matchedClient = clients.find(
-      c => c.email?.toLowerCase().trim() === email.toLowerCase().trim()
-    );
-
-    if (matchedClient) {
-      router.push(`/client/${matchedClient.id}`);
-    } else {
-      router.push("/admin");
+  const handleLogin = async (eEmail: string, ePass: string) => {
+    if (!eEmail || !ePass) {
+      setErrorMsg("Por favor, introduce tu email y contraseña.");
+      return;
     }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: eEmail,
+        password: ePass,
+      });
+
+      if (error) {
+        if (error.message === "Invalid login credentials") {
+          setErrorMsg("El correo electrónico o la contraseña no son válidos.");
+        } else {
+          setErrorMsg(error.message);
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (data?.user) {
+        // Fetch user profile to redirect
+        const { data: profile, error: profileErr } = await supabase
+          .from("profiles")
+          .select("role, client_id")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileErr || !profile) {
+          setErrorMsg("No se pudo obtener el perfil de usuario.");
+          setLoading(false);
+          return;
+        }
+
+        // Redirect based on role
+        if (profile.role === "admin") {
+          router.push("/admin");
+        } else if (profile.role === "client" && profile.client_id) {
+          router.push(`/client/${profile.client_id}`);
+        } else {
+          setErrorMsg("Rol de usuario desconocido o no asignado.");
+          setLoading(false);
+        }
+      }
+    } catch (err: any) {
+      setErrorMsg("Ocurrió un error inesperado al iniciar sesión.");
+      setLoading(false);
+    }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleLogin(email, password);
   };
 
   return (
@@ -74,14 +115,47 @@ export default function LoginPage() {
             Inicia <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>sesión</em>
           </h2>
 
-          <form onSubmit={handleLoginSubmit} className="col gap-4">
+          {errorMsg && (
+            <div 
+              style={{ 
+                background: "rgba(232, 66, 26, 0.08)", 
+                borderLeft: "3px solid var(--accent)", 
+                padding: "12px 16px", 
+                borderRadius: 6,
+                fontSize: 13,
+                color: "var(--accent)",
+                marginBottom: 20,
+                lineHeight: "1.4"
+              }}
+            >
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleFormSubmit} className="col gap-4">
             <div className="field">
               <label>Email</label>
-              <input className="input" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input 
+                className="input" 
+                type="email" 
+                placeholder="tu@email.com" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                disabled={loading}
+                required
+              />
             </div>
             <div className="field">
               <label>Contraseña</label>
-              <input className="input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input 
+                className="input" 
+                type="password" 
+                placeholder="••••••••" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                disabled={loading}
+                required
+              />
             </div>
             <div className="row between" style={{ fontSize: 12 }}>
               <label className="row gap-2" style={{ color: 'var(--ink-2)' }}>
@@ -89,49 +163,39 @@ export default function LoginPage() {
               </label>
               <a style={{ color: 'var(--ink-2)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
             </div>
-            <ButtonCustom variant="primary" size="lg" type="submit" style={{ width: '100%', marginTop: 6 }}>
-              Entrar
+            
+            <ButtonCustom 
+              variant="primary" 
+              size="lg" 
+              type="submit" 
+              style={{ width: '100%', marginTop: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner" style={{
+                    width: 14,
+                    height: 14,
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite'
+                  }} />
+                  Entrando...
+                </>
+              ) : "Entrar"}
             </ButtonCustom>
           </form>
-
-          <div className="row gap-3 mt-6" style={{ alignItems: 'center' }}>
-            <div className="divider flex-1" />
-            <span className="eyebrow" style={{ fontSize: 10 }}>Demo</span>
-            <div className="divider flex-1" />
-          </div>
-
-          <div className="col gap-2 mt-4">
-            <button
-              className="btn btn-ghost"
-              onClick={() => router.push("/admin")}
-              style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
-
-              <AvatarCustom name="Ramiro" color="#161311" size="sm" />
-              <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como Ramiro</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Admin · vista completa</span>
-              </span>
-              <Icon name="arrow_right" size={14} style={{ marginLeft: 'auto', color: 'var(--muted)' }} />
-            </button>
-
-            {clients.map((c) => (
-              <button
-                key={c.id}
-                className="btn btn-ghost"
-                onClick={() => router.push(`/client/${c.id}`)}
-                style={{ justifyContent: 'flex-start', padding: '12px 14px', width: '100%' }}>
-
-                <AvatarCustom name={c.name} color={c.color} initials={c.initials} size="sm" />
-                <span className="col" style={{ alignItems: 'flex-start', gap: 0, marginLeft: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>Entrar como {c.name}</span>
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Cliente · vista de portal</span>
-                </span>
-                <Icon name="arrow_right" size={14} style={{ marginLeft: 'auto', color: 'var(--muted)' }} />
-              </button>
-            ))}
-          </div>
         </div>
       </div>
+      
+      {/* Dynamic spinner animation */}
+      <style jsx global>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

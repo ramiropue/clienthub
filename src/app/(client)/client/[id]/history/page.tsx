@@ -58,7 +58,7 @@ export default function ClienteHistoryPage({ params }: { params: Promise<{ id: s
               >
                 <div className="col" style={{ gap: 2, flex: 1 }}>
                   <div className="h-month">{m.label}</div>
-                  <div className="h-meta">{t.count} piezas · iguala {eur(t.retainer)}</div>
+                  <div className="h-meta">{t.count} piezas · cuota mensual {eur(t.retainer)}</div>
                 </div>
                 <span className={`badge ${m.state === 'Pagada' ? 'badge-ok' : 'badge-accent'}`}>
                   <span className="dot" /> {m.state}

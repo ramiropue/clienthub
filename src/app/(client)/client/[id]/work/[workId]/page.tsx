@@ -290,7 +290,7 @@ export default function ClienteWorkDetailPage({
         <h3 className="h3">Trabajo no encontrado</h3>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 8 }}>Esta pieza no existe o no tienes acceso a ella.</p>
         <ButtonCustom
-          variant="outline"
+          variant="ghost"
           onClick={() => router.push(`/client/${clientId}`)}
           style={{ marginTop: 20 }}
         >
@@ -587,7 +587,7 @@ export default function ClienteWorkDetailPage({
         {typeDef?.group === 'contenido' && work.status === 'borrador' && !showFeedbackForm && (
           <div className="row gap-3 mt-6" style={{ width: '100%' }}>
             <ButtonCustom
-              variant="outline"
+              variant="ghost"
               onClick={() => setShowFeedbackForm(true)}
               style={{ flex: 1, padding: '12px 16px', borderRadius: 999 }}
             >

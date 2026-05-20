@@ -2,19 +2,27 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { getClient, Client } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { NotificationsBell } from '@/components/shared/notifications-bell';
+import { createClient } from '@/lib/supabase/client';
 
 export function ClienteTopbar({ clientId }: { clientId: string }) {
   const [client, setClient] = useState<Client | null>(null);
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     getClient(clientId).then(setClient);
   }, [clientId]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   if (!client) return null;
 
@@ -26,6 +34,26 @@ export function ClienteTopbar({ clientId }: { clientId: string }) {
       <div className="row gap-3" style={{ alignItems: 'center' }}>
         <NotificationsBell recipient="client" clientId={clientId} />
         <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" />
+        <button 
+          onClick={handleLogout}
+          title="Cerrar sesión"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '4px 6px',
+            borderRadius: 6,
+            cursor: 'pointer',
+            color: 'var(--muted)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}
+        >
+          <Icon name="logout" size={16} />
+        </button>
       </div>
     </div>
   );

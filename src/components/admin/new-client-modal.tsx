@@ -158,7 +158,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
   const [phone,          setPhone]          = useState('');
   const [startDate,      setStartDate]      = useState('');
   const [retainer,       setRetainer]       = useState(0);
-  const [retainerLabel,  setRetainerLabel]  = useState('Iguala plan Esencial');
+  const [retainerLabel,  setRetainerLabel]  = useState('Cuota plan Esencial');
   const [color,          setColor]          = useState(COLOR_PALETTE[0]);
   const [brandTone,      setBrandTone]      = useState('');
   const [accessInfo,     setAccessInfo]     = useState('');
@@ -187,7 +187,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
       setStartDate(sDate);
       
       setRetainer(initialData.monthlyRetainer || 0);
-      setRetainerLabel(initialData.retainerLabel || 'Iguala plan Esencial');
+      setRetainerLabel(initialData.retainerLabel || 'Cuota plan Esencial');
       setColor(initialData.color || COLOR_PALETTE[0]);
       
       setBrandTone(initialData.brandTone || '');
@@ -205,7 +205,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
       setAccountName(''); setContactName(''); setHandle('');
       setSector(''); setEmail(''); setPhone('');
       setStartDate(new Date().toISOString().split('T')[0]);
-      setRetainer(0); setRetainerLabel('Iguala plan Esencial');
+      setRetainer(0); setRetainerLabel('Cuota plan Esencial');
       setColor(COLOR_PALETTE[0]);
       setBrandTone(''); setAccessInfo(''); setNextMeeting('');
       setSocials([{ network: 'instagram', handle: '' }]);
@@ -317,7 +317,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
       color,
       initials,
       monthly_retainer: retainer,
-      retainer_label:   retainerLabel.trim() || 'Iguala mensual',
+      retainer_label:   retainerLabel.trim() || 'Cuota mensual',
       email:            email.trim(),
       phone:            phone.trim() || null,
       since,
@@ -597,7 +597,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
             {/* ── Billing ── */}
             <div className="row gap-3">
               <div className="field flex-1">
-                <label>Iguala mensual (€)</label>
+                <label>Cuota mensual (€)</label>
                 <input
                   className="input mono"
                   type="number"
@@ -611,7 +611,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
                 <label>Etiqueta del plan</label>
                 <input
                   className="input"
-                  placeholder="Ej. Iguala plan Esencial"
+                  placeholder="Ej. Cuota plan Esencial"
                   value={retainerLabel}
                   onChange={e => setRetainerLabel(e.target.value)}
                 />
