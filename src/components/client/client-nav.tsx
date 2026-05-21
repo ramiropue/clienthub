@@ -21,7 +21,7 @@ export function ClienteTopbar({ clientId }: { clientId: string }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
+    window.location.href = '/';
   };
 
   if (!client) return null;
