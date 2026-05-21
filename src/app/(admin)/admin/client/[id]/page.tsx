@@ -342,7 +342,14 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                   <button 
                     className="btn btn-ghost btn-sm" 
                     style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--warn)', marginTop: 2 }}
-                    onClick={() => { setMenuOpen(false); alert("Función de eliminar próximamente") }}
+                    onClick={async () => {
+                      if (confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
+                        setMenuOpen(false);
+                        const { error } = await supabase.from('clients').update({ is_deleted: true }).eq('id', clientId);
+                        if (error) alert("Error al eliminar cliente");
+                        else router.push('/admin/clients');
+                      }
+                    }}
                   >
                     <Icon name="trash" size={14} /> Eliminar
                   </button>

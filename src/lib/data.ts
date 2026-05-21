@@ -93,7 +93,7 @@ function mapWorkType(wt: any): WorkType {
 }
 
 export async function getClients(): Promise<Client[]> {
-  const { data, error } = await supabase.from('clients').select('*');
+  const { data, error } = await supabase.from('clients').select('*').neq('is_deleted', true);
   if (error) {
     console.error('Error fetching clients:', error);
     return [];
