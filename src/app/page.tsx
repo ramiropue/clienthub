@@ -161,7 +161,21 @@ export default function LoginPage() {
               <label className="row gap-2" style={{ color: 'var(--ink-2)' }}>
                 <input type="checkbox" defaultChecked /> Recuérdame
               </label>
-              <a style={{ color: 'var(--ink-2)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
+              <a 
+                style={{ color: 'var(--ink-2)', cursor: 'pointer' }}
+                onClick={async () => {
+                  const resetEmail = prompt("Introduce tu email para restablecer la contraseña:");
+                  if (resetEmail) {
+                    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                      redirectTo: window.location.origin + '/auth/callback?next=/reset-password',
+                    });
+                    if (error) alert("Error: " + error.message);
+                    else alert("Revisa tu correo para restablecer la contraseña.");
+                  }
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
             </div>
             
             <ButtonCustom 

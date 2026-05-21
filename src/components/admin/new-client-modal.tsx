@@ -375,7 +375,7 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
       } else {
         // Send reset password email so they can set their own password
         const { error: resetError } = await tempSupabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: window.location.origin + '/reset-password',
+          redirectTo: window.location.origin + '/auth/callback?next=/reset-password',
         });
         
         if (resetError) {
@@ -395,11 +395,11 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
   // ── Delete ────────────────────────────────────────────────
   const handleDelete = useCallback(async () => {
     if (!initialData?.id) return;
-    if (!window.confirm('¿Estás seguro de que quieres eliminar a este cliente? Se borrarán también sus datos.')) return;
+    if (!window.confirm('¿Estás seguro de que quieres eliminar a este cliente?')) return;
     
     setSaving(true);
     setError('');
-    const { error: err } = await supabase.from('clients').delete().eq('id', initialData.id);
+    const { error: err } = await supabase.from('clients').update({ is_deleted: true }).eq('id', initialData.id);
     setSaving(false);
     
     if (err) { 
