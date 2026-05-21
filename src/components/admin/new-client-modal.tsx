@@ -368,11 +368,21 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
         }
       });
 
-      if (!signUpError) {
+      if (signUpError) {
+        setError('Cliente guardado, pero falló Auth: ' + signUpError.message);
+        setSaving(false);
+        return; // Don't close modal so they can see it
+      } else {
         // Send reset password email so they can set their own password
-        await tempSupabase.auth.resetPasswordForEmail(email.trim(), {
+        const { error: resetError } = await tempSupabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: window.location.origin + '/reset-password',
         });
+        
+        if (resetError) {
+          setError('Cliente guardado, pero falló el correo de reset: ' + resetError.message);
+          setSaving(false);
+          return;
+        }
       }
 
       setSaving(false);
