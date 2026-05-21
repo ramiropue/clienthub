@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { totalFor, eur } from '@/lib/mock-data';
+import { eur, worksFor } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 
@@ -25,11 +25,16 @@ export default function ClienteHistoryPage({ params }: { params: Promise<{ id: s
   if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
-  const months = [
-    { y: 2026, m: 4, label: 'Mayo 2026', state: 'En curso' },
-    { y: 2026, m: 3, label: 'Abril 2026', state: 'Pagada' },
-    { y: 2026, m: 2, label: 'Marzo 2026', state: 'Pagada' }
-  ];
+  const d = new Date();
+  const months = Array.from({ length: 3 }).map((_, i) => {
+    const nd = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    return {
+      y: nd.getFullYear(),
+      m: nd.getMonth(),
+      label: `${['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][nd.getMonth()]} ${nd.getFullYear()}`,
+      state: i === 0 ? 'En curso' : 'Pagada'
+    };
+  });
 
   return (
     <>
@@ -42,14 +47,25 @@ export default function ClienteHistoryPage({ params }: { params: Promise<{ id: s
         <div className="card card-pad" style={{ background: 'var(--ink)', color: '#fff' }}>
           <div className="eyebrow" style={{ color: 'rgba(255,255,255,.5)' }}>Total facturado contigo</div>
           <div className="num-display mt-2" style={{ fontSize: 56, lineHeight: 1 }}>
-            {eur(months.reduce((s, m) => s + totalFor(works, client.id, m.y, m.m).total, 0))}
+            {eur(months.reduce((s, m) => {
+              const list = worksFor(works, client.id, m.y, m.m);
+              const billableList = list.filter(w => w.status === 'publicado');
+              const v = billableList.reduce((ss: number, ww: any) => ss + (ww.price || 0), 0);
+              return s + v + (client.monthlyRetainer || 0);
+            }, 0))}
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>desde {client.since}</div>
         </div>
 
         <div className="mt-6">
           {months.map(m => {
-            const t = totalFor(works, client.id, m.y, m.m);
+            const list = worksFor(works, client.id, m.y, m.m);
+            const billableList = list.filter(w => w.status === 'publicado');
+            const variable = billableList.reduce((ss: number, ww: any) => ss + (ww.price || 0), 0);
+            const retainer = client.monthlyRetainer || 0;
+            const total = variable + retainer;
+            const count = billableList.length;
+            
             return (
               <div 
                 key={m.label} 
@@ -58,12 +74,12 @@ export default function ClienteHistoryPage({ params }: { params: Promise<{ id: s
               >
                 <div className="col" style={{ gap: 2, flex: 1 }}>
                   <div className="h-month">{m.label}</div>
-                  <div className="h-meta">{t.count} piezas · cuota mensual {eur(t.retainer)}</div>
+                  <div className="h-meta">{count} piezas · cuota mensual {eur(retainer)}</div>
                 </div>
                 <span className={`badge ${m.state === 'Pagada' ? 'badge-ok' : 'badge-accent'}`}>
                   <span className="dot" /> {m.state}
                 </span>
-                <div className="h-amount" style={{ marginLeft: 12 }}>{eur(t.total)}</div>
+                <div className="h-amount" style={{ marginLeft: 12 }}>{eur(total)}</div>
                 <Icon name="chevron_right" size={16} className="h-arrow" />
               </div>
             );

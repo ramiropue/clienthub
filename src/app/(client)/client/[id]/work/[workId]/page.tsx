@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { eur, getType, MONTH_NAMES } from '@/lib/mock-data';
-import { Client, getClient, createNotification } from '@/lib/data';
+import { Client, getClient, createNotification, getWorkTypes } from '@/lib/data';
 
 interface Work {
   id: string;
@@ -35,6 +35,7 @@ export default function ClienteWorkDetailPage({
 
   const [work, setWork] = useState<Work | null>(null);
   const [client, setClient] = useState<Client | null>(null);
+  const [workTypes, setWorkTypes] = useState<any[]>([]);
   const [adminName, setAdminName] = useState('Antía');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
@@ -52,6 +53,16 @@ export default function ClienteWorkDetailPage({
   useEffect(() => {
     loadData();
   }, [workId, clientId]);
+
+  const parsedAttachments = React.useMemo(() => {
+    if (!work?.preview_url) return [];
+    try {
+      if (work.preview_url.startsWith('[')) return JSON.parse(work.preview_url);
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
+    } catch {
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
+    }
+  }, [work?.preview_url]);
 
   async function loadData() {
     try {
@@ -75,14 +86,15 @@ export default function ClienteWorkDetailPage({
       const c = await getClient(clientId);
       setClient(c);
 
-      // 3. Fetch admin settings
-      const { data: s } = await supabase
-        .from('settings')
-        .select('profile_name')
-        .single();
+      // 3. Fetch admin settings and work types
+      const [{ data: s }, wt] = await Promise.all([
+        supabase.from('settings').select('profile_name').single(),
+        getWorkTypes()
+      ]);
       if (s?.profile_name) {
         setAdminName(s.profile_name);
       }
+      setWorkTypes(wt);
 
       // 4. Fetch comments
       const { data: cms } = await supabase
@@ -300,17 +312,7 @@ export default function ClienteWorkDetailPage({
     );
   }
 
-  const typeDef = getType(work.type);
-
-  const parsedAttachments = React.useMemo(() => {
-    if (!work?.preview_url) return [];
-    try {
-      if (work.preview_url.startsWith('[')) return JSON.parse(work.preview_url);
-      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
-    } catch {
-      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
-    }
-  }, [work?.preview_url]);
+  const typeDef = workTypes.find(t => t.id === work.type) || getType(work.type);
 
   return (
     <div

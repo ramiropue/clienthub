@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
-import { getClient, getWorksForClient, Client, Work, getSettings, Settings } from '@/lib/data';
+import { getClient, getWorksForClient, Client, Work, getSettings, Settings, getWorkTypes, WorkType } from '@/lib/data';
 import { ButtonCustom } from '@/components/ui/button-custom';
 
 export default function ClienteInvoicePage({
@@ -18,17 +18,20 @@ export default function ClienteInvoicePage({
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       getClient(clientId), 
       getWorksForClient(clientId),
-      getSettings()
-    ]).then(([c, w, s]) => {
+      getSettings(),
+      getWorkTypes()
+    ]).then(([c, w, s, wt]) => {
       setClient(c);
       setWorks(w);
       setSettings(s);
+      setWorkTypes(wt);
       setLoading(false);
     });
   }, [clientId]);
@@ -44,12 +47,15 @@ export default function ClienteInvoicePage({
     : CURRENT_MONTH;
 
   const list = worksFor(works, client.id, my.year, my.month);
-  const totals = totalFor(works, client.id, my.year, my.month);
+  const billableList = list.filter(w => w.status === 'publicado');
+  const variable = billableList.reduce((s, w) => s + (w.price || 0), 0);
+  const retainer = client.monthlyRetainer || 0;
+  const total = variable + retainer;
   
   // group by type
   const byType: Record<string, { type: any, items: any[], total: number }> = {};
-  list.forEach((w: any) => {
-    if (!byType[w.type]) byType[w.type] = { type: getType(w.type), items: [], total: 0 };
+  billableList.forEach((w: any) => {
+    if (!byType[w.type]) byType[w.type] = { type: workTypes.find(t => t.id === w.type) || getType(w.type), items: [], total: 0 };
     byType[w.type].items.push(w);
     byType[w.type].total += w.price;
   });
@@ -77,8 +83,8 @@ export default function ClienteInvoicePage({
             {settings?.companyAddress && <span style={{ fontSize: 11, color: 'var(--muted)', display: 'inline-block', maxWidth: 200, lineHeight: 1.3 }}>{settings.companyAddress}</span>}
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="num">N.º {my.year}-05-{client.id === 'pilar' ? '014' : '015'}</div>
-            <div className="text-muted mt-2" style={{ fontSize: 11 }}>Emisión 31 may {my.year}</div>
+            <div className="num">N.º {my.year}-{(my.month+1).toString().padStart(2, '0')}-{client.id.slice(0,3).toUpperCase()}</div>
+            <div className="text-muted mt-2" style={{ fontSize: 11 }}>Emisión 1 {MONTH_NAMES[(my.month + 1) % 12].slice(0,3).toLowerCase()} {my.month === 11 ? my.year + 1 : my.year}</div>
             <div className="badge badge-accent mt-2"><span className="dot" /> Pendiente</div>
           </div>
         </div>
@@ -102,11 +108,11 @@ export default function ClienteInvoicePage({
 
         <div className="li">
           <div>
-            {client.retainerLabel}
+            {client.retainerLabel || 'Cuota mensual'}
             <div className="li-sub">Cuota mensual fija — incluye gestión de comunidad y reporting</div>
           </div>
           <div className="li-qty">1</div>
-          <div className="li-amt">{eurFull(totals.retainer)}</div>
+          <div className="li-amt">{eurFull(retainer)}</div>
         </div>
 
         {groups.map(g => (
@@ -124,23 +130,23 @@ export default function ClienteInvoicePage({
           <div className="li">
             <div className="text-muted" style={{ fontSize: 12 }}>Subtotal</div>
             <div />
-            <div className="li-amt mono">{eurFull(totals.total)}</div>
+            <div className="li-amt mono">{eurFull(total)}</div>
           </div>
           <div className="li">
             <div className="text-muted" style={{ fontSize: 12 }}>IVA (21%)</div>
             <div />
-            <div className="li-amt mono">{eurFull(totals.total * 0.21)}</div>
+            <div className="li-amt mono">{eurFull(total * 0.21)}</div>
           </div>
           <div className="li">
             <div className="text-muted" style={{ fontSize: 12 }}>IRPF (-15%)</div>
             <div />
-            <div className="li-amt mono">−{eurFull(totals.total * 0.15)}</div>
+            <div className="li-amt mono">−{eurFull(total * 0.15)}</div>
           </div>
         </div>
 
         <div className="grand">
           <div className="lbl">Total a pagar</div>
-          <div className="amt">{eurFull(totals.total * 1.06)}</div>
+          <div className="amt">{eurFull(total * 1.06)}</div>
         </div>
 
         <div className="text-muted mt-4" style={{ fontSize: 11 }}>

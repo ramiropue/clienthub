@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { CURRENT_MONTH, worksFor, groupByWeek, totalFor, eur, TODAY, getType } from '@/lib/mock-data';
+import { CURRENT_MONTH, worksFor, groupByWeek, totalFor, eur, TODAY, getType, MONTH_NAMES } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 import { WorkRow } from '@/components/shared/work-row';
@@ -18,6 +18,15 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState('Antía');
   const [filterPending, setFilterPending] = useState(false);
+  const [currentDate] = useState(new Date());
+  const [selectedMonth, setSelectedMonth] = useState({ month: currentDate.getMonth(), year: currentDate.getFullYear() });
+
+  const handlePrevMonth = () => {
+    setSelectedMonth(prev => prev.month === 0 ? { month: 11, year: prev.year - 1 } : { ...prev, month: prev.month - 1 });
+  };
+  const handleNextMonth = () => {
+    setSelectedMonth(prev => prev.month === 11 ? { month: 0, year: prev.year + 1 } : { ...prev, month: prev.month + 1 });
+  };
 
   useEffect(() => {
     Promise.all([
@@ -43,7 +52,7 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
   if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
-  const month = CURRENT_MONTH;
+  const month = selectedMonth;
   const monthWorks = worksFor(works, client.id, month.year, month.month).sort((a, b) => b.date.getTime() - a.date.getTime());
   const filteredWorks = filterPending
     ? monthWorks.filter(w => {
@@ -52,13 +61,19 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
       })
     : monthWorks;
   const groups = groupByWeek(filteredWorks);
-  const totals = totalFor(works, client.id, month.year, month.month);
+  
+  const billableList = monthWorks.filter(w => w.status === 'publicado');
+  const variable = billableList.reduce((s, w) => s + (w.price || 0), 0);
+  const retainer = client.monthlyRetainer || 0;
+  const total = variable + retainer;
+  const count = billableList.length;
+
   const pending = monthWorks.filter(w => {
     const typeDef = workTypes.find(t => t.id === w.type) || getType(w.type);
     return typeDef?.group === 'contenido' && w.status === 'borrador';
   }).length;
 
-  const totalStr = eur(totals.total).replace('€','').trim();
+  const totalStr = eur(total).replace('€','').trim();
 
   const handleOpenWork = (workId: string) => {
     router.push(`/client/${clientId}/work/${workId}`);
@@ -68,10 +83,10 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
     <>
       <div className="client-hero">
         <div className="month">
-          <span>Mayo 2026 · hasta el 15</span>
+          <span>{MONTH_NAMES[selectedMonth.month]} {selectedMonth.year}</span>
           <div className="nav">
-            <button><Icon name="chevron_left" size={14} /></button>
-            <button><Icon name="chevron_right" size={14} /></button>
+            <button onClick={handlePrevMonth}><Icon name="chevron_left" size={14} /></button>
+            <button onClick={handleNextMonth}><Icon name="chevron_right" size={14} /></button>
           </div>
         </div>
         <div className="total">
@@ -81,9 +96,9 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
           Facturación acumulada de este mes
         </div>
         <div className="breakdown">
-          <span className="chip"><span className="lbl">Cuota mensual</span> <span className="val mono">{eur(totals.retainer)}</span></span>
-          <span className="chip"><span className="lbl">Extras</span> <span className="val mono">{eur(totals.variable)}</span></span>
-          <span className="chip"><span className="lbl">Piezas</span> <span className="val">{totals.count}</span></span>
+          <span className="chip"><span className="lbl">Cuota mensual</span> <span className="val mono">{eur(retainer)}</span></span>
+          <span className="chip"><span className="lbl">Extras</span> <span className="val mono">{eur(variable)}</span></span>
+          <span className="chip"><span className="lbl">Piezas</span> <span className="val">{count}</span></span>
         </div>
       </div>
 
@@ -161,7 +176,7 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="client-section" style={{ paddingTop: 8 }}>
-        <div className="card card-pad" onClick={() => router.push(`/client/${clientId}/invoice`)} style={{ cursor: 'pointer' }}>
+        <div className="card card-pad" onClick={() => router.push(`/client/${clientId}/invoice?y=${selectedMonth.year}&m=${selectedMonth.month}`)} style={{ cursor: 'pointer' }}>
           <div className="row between" style={{ alignItems: 'flex-start' }}>
             <div>
               <div className="eyebrow">Factura del mes</div>
