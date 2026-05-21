@@ -1232,6 +1232,17 @@ a { color: inherit; text-decoration: none; }
   z-index: 5;
 }
 
+.calendar-sticky {
+  flex: 1;
+  position: sticky;
+  top: 24px;
+}
+@media (max-width: 768px) {
+  .calendar-sticky {
+    position: static;
+  }
+}
+
 /* List items animation */
 .fade-in { animation: slide-up .25s ease backwards; }
 .fade-in:nth-child(1) { animation-delay: .02s; }

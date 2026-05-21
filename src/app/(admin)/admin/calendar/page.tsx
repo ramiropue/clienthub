@@ -68,92 +68,94 @@ export default function AdminCalendarPage() {
           </div>
         </div>
       </div>
-      <div className="main-content row gap-6" style={{ alignItems: 'flex-start' }}>
-        <div className="card card-pad" style={{ flex: 1, position: 'sticky', top: 24 }}>
-          <MiniCalendar 
-            year={2026} 
-            month={4} 
-            works={works.filter(w => w.type !== 'herramientas')} 
-            onPickDay={(d) => setSelectedCalendarDate(d)}
-            viewMode={viewMode}
-          />
-          <div className="row gap-4 mt-6" style={{ fontSize: 12 }}>
-            <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--warn)' }} /> Borrador</span>
-            <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--accent)' }} /> Aprobado</span>
-            <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--ok)' }} /> Publicado</span>
-          </div>
-
-          {selectedCalendarDate && (
-            <div className="modal-overlay" onClick={() => setSelectedCalendarDate(null)}>
-              <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
-                <div className="row between mb-4">
-                  <h3 className="h3 m-0">Trabajos del {selectedCalendarDate.getDate()} de {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][selectedCalendarDate.getMonth()]} de {selectedCalendarDate.getFullYear()}</h3>
-                  <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="close" size={20} /></button>
-                </div>
-                
-                <div className="mb-4">
-                  <ButtonCustom 
-                    variant="primary" 
-                    icon="plus" 
-                    onClick={() => {
-                      setShowNewWorkModal(true);
-                    }}
-                    style={{ width: '100%' }}
-                  >
-                    Añadir trabajo
-                  </ButtonCustom>
-                </div>
-
-                <div className="work-list" style={{ border: 'none', background: 'transparent' }}>
-                  {works
-                    .filter(w => w.type !== 'herramientas' && w.date.getDate() === selectedCalendarDate.getDate() && w.date.getMonth() === selectedCalendarDate.getMonth() && w.date.getFullYear() === selectedCalendarDate.getFullYear())
-                    .map(w => {
-                      const client = clients.find(c => c.id === w.clientId);
-                      return (
-                        <div key={w.id} className="mb-4">
-                          <div 
-                            className="row gap-2 mb-2" 
-                            style={{ fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
-                            onClick={() => router.push(`/admin/client/${client?.id}`)}
-                          >
-                            {client && <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" logoUrl={client.logoUrl} />}
-                            {client?.name || 'Cliente desconocido'}
-                          </div>
-                          <WorkRow
-                            work={w}
-                            onClick={() => router.push(`/admin/work/${w.id}`)}
-                            onStatusChange={(newStatus: string) => updateWorkStatus(w.id, newStatus)}
-                            compact
-                          />
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
+      <div className="main-content">
+        <div className="row gap-6" style={{ alignItems: 'flex-start' }}>
+          <div className="card card-pad calendar-sticky">
+            <MiniCalendar 
+              year={2026} 
+              month={4} 
+              works={works.filter(w => w.type !== 'herramientas')} 
+              onPickDay={(d) => setSelectedCalendarDate(d)}
+              viewMode={viewMode}
+            />
+            <div className="row gap-4 mt-6" style={{ fontSize: 12 }}>
+              <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--warn)' }} /> Borrador</span>
+              <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--accent)' }} /> Aprobado</span>
+              <span className="row gap-2"><span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--ok)' }} /> Publicado</span>
             </div>
-          )}
-        </div>
-        <div className="col gap-4" style={{ flex: 1 }}>
-          {clients.map(c => {
-            const list = currentWorks.filter(w => w.clientId === c.id);
-            return (
-              <div 
-                key={c.id} 
-                className="card card-pad" 
-                style={{ cursor: 'pointer' }} 
-                onClick={() => router.push(`/admin/client/${c.id}`)}
-              >
-                <div className="row gap-3" style={{ alignItems: 'center' }}>
-                  <AvatarCustom name={c.name} color={c.color} initials={c.initials} logoUrl={c.logoUrl} />
-                  <div className="flex-1">
-                    <div style={{ fontWeight: 500 }}>{c.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>{list.length} trabajos {periodLabel}</div>
+
+            {selectedCalendarDate && (
+              <div className="modal-overlay" onClick={() => setSelectedCalendarDate(null)}>
+                <div className="modal fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, padding: 24, maxHeight: '80vh', overflowY: 'auto' }}>
+                  <div className="row between mb-4">
+                    <h3 className="h3 m-0">Trabajos del {selectedCalendarDate.getDate()} de {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][selectedCalendarDate.getMonth()]} de {selectedCalendarDate.getFullYear()}</h3>
+                    <button className="btn-icon" onClick={() => setSelectedCalendarDate(null)}><Icon name="close" size={20} /></button>
                   </div>
-                  <Icon name="chevron_right" size={16} className="text-muted" />
+                  
+                  <div className="mb-4">
+                    <ButtonCustom 
+                      variant="primary" 
+                      icon="plus" 
+                      onClick={() => {
+                        setShowNewWorkModal(true);
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      Añadir trabajo
+                    </ButtonCustom>
+                  </div>
+
+                  <div className="work-list" style={{ border: 'none', background: 'transparent' }}>
+                    {works
+                      .filter(w => w.type !== 'herramientas' && w.date.getDate() === selectedCalendarDate.getDate() && w.date.getMonth() === selectedCalendarDate.getMonth() && w.date.getFullYear() === selectedCalendarDate.getFullYear())
+                      .map(w => {
+                        const client = clients.find(c => c.id === w.clientId);
+                        return (
+                          <div key={w.id} className="mb-4">
+                            <div 
+                              className="row gap-2 mb-2" 
+                              style={{ fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+                              onClick={() => router.push(`/admin/client/${client?.id}`)}
+                            >
+                              {client && <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" logoUrl={client.logoUrl} />}
+                              {client?.name || 'Cliente desconocido'}
+                            </div>
+                            <WorkRow
+                              work={w}
+                              onClick={() => router.push(`/admin/work/${w.id}`)}
+                              onStatusChange={(newStatus: string) => updateWorkStatus(w.id, newStatus)}
+                              compact
+                            />
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            )}
+          </div>
+          <div className="col gap-4" style={{ flex: 1 }}>
+            {clients.map(c => {
+              const list = currentWorks.filter(w => w.clientId === c.id);
+              return (
+                <div 
+                  key={c.id} 
+                  className="card card-pad" 
+                  style={{ cursor: 'pointer' }} 
+                  onClick={() => router.push(`/admin/client/${c.id}`)}
+                >
+                  <div className="row gap-3" style={{ alignItems: 'center' }}>
+                    <AvatarCustom name={c.name} color={c.color} initials={c.initials} logoUrl={c.logoUrl} />
+                    <div className="flex-1">
+                      <div style={{ fontWeight: 500 }}>{c.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{list.length} trabajos {periodLabel}</div>
+                    </div>
+                    <Icon name="chevron_right" size={16} className="text-muted" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
