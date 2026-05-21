@@ -1,9 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { totalFor, eur } from '@/lib/mock-data';
+import { eur, worksFor } from '@/lib/mock-data';
 import { getClients, getWorks, Client, Work } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
+
+function getInvoiceTotal(works: Work[], clientId: string, year: number, month: number, retainer: number) {
+  const list = worksFor(works, clientId, year, month);
+  const billableList = list.filter(w => w.status === 'publicado');
+  const variable = billableList.reduce((s, w) => s + w.price, 0);
+  return {
+    retainer,
+    variable,
+    total: retainer + variable,
+    count: billableList.length
+  };
+}
 
 export default function AdminInvoicesPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -36,7 +48,7 @@ export default function AdminInvoicesPage() {
       </div>
       <div className="main-content">
         {months.map(mn => {
-          const byClient = clients.map(c => ({ client: c, total: totalFor(works, c.id, mn.y, mn.m) }));
+          const byClient = clients.map(c => ({ client: c, total: getInvoiceTotal(works, c.id, mn.y, mn.m, c.monthlyRetainer || 0) }));
           const sum = byClient.reduce((s, x) => s + x.total.total, 0);
           return (
             <div key={mn.label} className="card mb-4">

@@ -79,9 +79,9 @@ export function AdminMobileBottomNav() {
     return () => window.removeEventListener('clients-updated', handleUpdate);
   }, []);
 
-  const items = [
+  const items: Array<{ id: string, label: string, icon: string, href: string, count?: number }> = [
     { id: 'dashboard', label: 'Resumen', icon: 'dashboard', href: '/admin' },
-    { id: 'clients',   label: 'Clientes', icon: 'users', count: clients.length, href: '/admin/clients' },
+    { id: 'clients',   label: 'Clientes', icon: 'users', href: '/admin/clients' },
     { id: 'calendar',  label: 'Calendario', icon: 'calendar', href: '/admin/calendar' },
     { id: 'invoices',  label: 'Facturas', icon: 'invoice', href: '/admin/invoices' },
     { id: 'types',     label: 'Tipos', icon: 'wrench', href: '/admin/settings/types' },

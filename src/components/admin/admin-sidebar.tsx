@@ -31,9 +31,9 @@ export function AdminSidebar() {
     return () => window.removeEventListener('settings-updated', handleUpdate);
   }, []);
 
-  const items = [
+  const items: Array<{ id: string, label: string, icon: string, href: string, count?: number }> = [
     { id: 'dashboard', label: 'Dashboard',  icon: 'dashboard', href: '/admin' },
-    { id: 'clients',   label: 'Clientes',   icon: 'users', count: clients.length, href: '/admin/clients' },
+    { id: 'clients',   label: 'Clientes',   icon: 'users', href: '/admin/clients' },
     { id: 'calendar',  label: 'Calendario', icon: 'calendar', href: '/admin/calendar' },
     { id: 'invoices',  label: 'Facturación', icon: 'invoice', href: '/admin/invoices' },
   ];

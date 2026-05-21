@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { supabase } from '@/lib/supabase';
 import { Client, getWorkTypes, WorkType, createNotification } from '@/lib/data';
 import { STATUS, eur } from '@/lib/mock-data';
-import { useGooglePicker } from '@/hooks/use-google-picker';
 
 interface NewWorkModalProps {
   open: boolean;
@@ -26,13 +25,14 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   const [typeId, setTypeId]     = useState('reel');
   const [title, setTitle]       = useState('');
   const [date, setDate]         = useState(preselectDate || today);
-  const [status, setStatus]     = useState<'borrador' | 'aprobado' | 'publicado'>('aprobado');
+  const [status, setStatus]     = useState<'borrador' | 'aprobado' | 'publicado'>('borrador');
   const [notes, setNotes]       = useState('');
   const [price, setPrice]       = useState(65);
-  const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
-  const [previewName, setPreviewName] = useState<string | null>(null);
-  const [previewIcon, setPreviewIcon] = useState<string | null>(null);
-  const [pickerError, setPickerError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [linkInputOpen, setLinkInputOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkName, setLinkName] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
@@ -59,24 +59,64 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
     if (open) {
       setTitle('');
       setNotes('');
-      setStatus('aprobado');
+      setStatus('borrador');
       setDate(preselectDate || today);
       setError('');
-      setPreviewUrl(null);
-      setPreviewName(null);
-      setPreviewIcon(null);
-      setPickerError(null);
+      setAttachments([]);
+      setLinkInputOpen(false);
+      setLinkUrl('');
+      setLinkName('');
+      setUploadError(null);
     }
   }, [open]);
 
-  const handlePick = useCallback((file: { id: string; name: string; url: string; mimeType: string; iconUrl: string }) => {
-    setPreviewUrl(file.url);
-    setPreviewName(file.name);
-    setPreviewIcon(file.iconUrl);
-    setPickerError(null);
-  }, []);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const { openPicker } = useGooglePicker({ onPick: handlePick, onError: setPickerError });
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const path = `works/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { error } = await supabase.storage.from('client-logos').upload(path, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('client-logos').getPublicUrl(path);
+      
+      const newAtt = { id: Date.now().toString(), name: file.name, url: data.publicUrl, type: 'file' };
+      setAttachments(prev => [...prev, newAtt]);
+    } catch (err: any) {
+      setUploadError('Error subiendo archivo: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddLink = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    let finalUrl = linkUrl.trim();
+    if (!finalUrl) return;
+    if (!/^https?:\/\//i.test(finalUrl)) {
+      finalUrl = 'https://' + finalUrl;
+    }
+    const newAtt = { 
+      id: Date.now().toString(), 
+      name: linkName.trim() || 'Enlace externo', 
+      url: finalUrl, 
+      type: 'link' 
+    };
+    setAttachments(prev => [...prev, newAtt]);
+    setLinkUrl('');
+    setLinkName('');
+    setLinkInputOpen(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
 
   // Close on Escape
   useEffect(() => {
@@ -103,7 +143,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
       status: finalStatus,
       price,
       notes: notes.trim() || null,
-      preview_url: previewUrl || null,
+      preview_url: attachments.length > 0 ? JSON.stringify(attachments) : null,
     });
 
     setSaving(false);
@@ -253,75 +293,113 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
               </div>
             )}
 
-            {/* Adjunto */}
+            {/* Adjuntos */}
             <div className="field">
-              <label>Adjuntar previsualización</label>
+              <label>Archivos y enlaces adjuntos</label>
 
-              {previewUrl ? (
-                /* ── File selected ── */
-                <div
-                  className="drop-zone"
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 14px',
-                    gap: 10,
-                    cursor: 'default',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-                    {previewIcon && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewIcon} alt="" width={18} height={18} style={{ flexShrink: 0 }} />
-                    )}
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {previewName}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-icon"
-                    aria-label="Quitar archivo"
-                    onClick={() => { setPreviewUrl(null); setPreviewName(null); setPreviewIcon(null); }}
-                    style={{ flexShrink: 0 }}
-                  >
-                    <Icon name="close" size={14} />
-                  </button>
-                </div>
-              ) : (
-                /* ── Empty drop-zone — click to open Drive picker ── */
-                <div
-                  className="drop-zone"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Seleccionar archivo de Google Drive"
-                  onClick={openPicker}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openPicker(); }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <Icon name="image" size={20} /><br />
-                  <span>
-                    Arrastra una imagen o{' '}
-                    <strong style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                      busca un archivo en Drive
-                    </strong>
-                  </span>
-                  <br />
-                  <span style={{ fontSize: 11 }}>JPG, PNG, MP4, PDF</span>
+              {attachments.length > 0 && (
+                <div className="col gap-3 mb-4">
+                  {attachments.map(att => {
+                    const isVid = att.type === 'file' && /\.(mp4|webm|mov|m4v)($|\?)/i.test(att.url);
+                    const isImg = att.type === 'file' && /\.(png|jpg|jpeg|gif|webp|svg)($|\?)/i.test(att.url);
+
+                    return (
+                      <div key={att.id} style={{ position: 'relative', width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--paper-2)' }}>
+                        {isVid ? (
+                          <video src={att.url} controls playsInline style={{ width: '100%', aspectRatio: '16/9', objectFit: 'contain', background: '#000' }} />
+                        ) : isImg ? (
+                          <img src={att.url} alt={att.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'contain', background: 'var(--paper-2)' }} />
+                        ) : (
+                          <div className="row gap-3" style={{ padding: '12px 16px', alignItems: 'center' }}>
+                            <Icon name={att.type === 'link' ? 'external' : 'file'} size={20} style={{ color: 'var(--accent)' }} />
+                            <div className="col" style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                              <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.url}</a>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}
+                          style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: '#fff' }}
+                        >
+                          <Icon name="close" size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
-              {pickerError && (
-                <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4 }}>{pickerError}</p>
+              {linkInputOpen ? (
+                <div className="card card-pad" style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 12 }}>
+                  <div className="row between mb-2">
+                    <span style={{ fontSize: 12, fontWeight: 500 }}>Vincular enlace externo (Drive, Dropbox...)</span>
+                    <button type="button" className="btn-icon" onClick={() => setLinkInputOpen(false)}><Icon name="close" size={14} /></button>
+                  </div>
+                  <div className="col gap-2">
+                    <input 
+                      className="input" 
+                      placeholder="Nombre (ej. Recursos Drive)" 
+                      value={linkName} 
+                      onChange={(e) => setLinkName(e.target.value)} 
+                    />
+                    <input 
+                      className="input" 
+                      placeholder="URL (https://...)" 
+                      value={linkUrl} 
+                      onChange={(e) => setLinkUrl(e.target.value)} 
+                    />
+                    <ButtonCustom type="button" variant="accent" onClick={handleAddLink} disabled={!linkUrl.trim()}>
+                      Añadir enlace
+                    </ButtonCustom>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="drop-zone"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  style={{ cursor: 'pointer', position: 'relative', padding: '24px 20px' }}
+                >
+                  {uploading ? (
+                    <div style={{ padding: '20px', color: 'var(--accent)' }}>Subiendo archivo...</div>
+                  ) : (
+                    <>
+                      <Icon name="plus" size={20} /><br />
+                      <span>
+                        Arrastra un archivo aquí o{' '}
+                        <strong 
+                          style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          súbelo desde tu equipo
+                        </strong>
+                      </span>
+                      <div className="mt-2 row gap-2" style={{ justifyContent: 'center' }}>
+                        <ButtonCustom type="button" variant="ghost" onClick={(e) => { e.preventDefault(); setLinkInputOpen(true); }} icon="link" style={{ fontSize: 11, padding: '4px 10px', height: 'auto' }}>
+                          Vincular enlace (Drive, etc.)
+                        </ButtonCustom>
+                      </div>
+                      <br />
+                      <span style={{ fontSize: 11 }}>Sube varios archivos o enlaza carpetas externas</span>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }} 
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+                          e.target.value = '';
+                        }} 
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {uploadError && (
+                <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4 }}>{uploadError}</p>
               )}
             </div>
 
@@ -344,7 +422,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
 
         {/* ── Footer ── */}
         <div className="modal-foot">
-          <ButtonCustom variant="ghost" onClick={onClose} disabled={saving}>
+          <ButtonCustom type="button" variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </ButtonCustom>
           {isContenido && (
@@ -357,6 +435,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
             </ButtonCustom>
           )}
           <ButtonCustom
+            type="button"
             variant="accent"
             icon="check"
             onClick={() => handleSubmit()}

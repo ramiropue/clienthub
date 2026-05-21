@@ -7,7 +7,8 @@ import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { eur, STATUS, getType } from '@/lib/mock-data';
-import { Work, Client, getClient, createNotification } from '@/lib/data';
+import { Work, Client, getClient, getClients, createNotification } from '@/lib/data';
+import { EditWorkModal } from '@/components/admin/edit-work-modal';
 
 export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -16,9 +17,11 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
 
   const [work, setWork] = useState<Work | null>(null);
   const [client, setClient] = useState<Client | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [profileName, setProfileName] = useState('Antía');
+  const [editOpen, setEditOpen] = useState(false);
 
   // Editable fields
   const [notes, setNotes] = useState('');
@@ -28,24 +31,108 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
   const [newCommentText, setNewCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [linkInputOpen, setLinkInputOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkName, setLinkName] = useState('');
+
+  const parsedAttachments = React.useMemo(() => {
+    if (!work?.previewUrl) return [];
+    try {
+      if (work.previewUrl.startsWith('[')) return JSON.parse(work.previewUrl);
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.previewUrl, type: 'file' }];
+    } catch {
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.previewUrl, type: 'file' }];
+    }
+  }, [work?.previewUrl]);
+
+  const updateAttachments = async (newArr: any[]) => {
+    if (!work) return;
+    setSaving(true);
+    const val = newArr.length > 0 ? JSON.stringify(newArr) : null;
+    const { error } = await supabase.from('works').update({ preview_url: val }).eq('id', work.id);
+    setSaving(false);
+    if (!error) {
+      setWork({ ...work, previewUrl: val });
+    } else {
+      setToast('Error al actualizar adjuntos');
+      setTimeout(() => setToast(''), 2000);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!work) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const path = `works/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { error: uploadError } = await supabase.storage.from('client-logos').upload(path, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('client-logos').getPublicUrl(path);
+      
+      const newAtt = { id: Date.now().toString(), name: file.name, url: data.publicUrl, type: 'file' };
+      await updateAttachments([...parsedAttachments, newAtt]);
+    } catch (err: any) {
+      setUploadError('Error subiendo archivo: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddLink = async () => {
+    let finalUrl = linkUrl.trim();
+    if (!finalUrl) return;
+    if (!/^https?:\/\//i.test(finalUrl)) {
+      finalUrl = 'https://' + finalUrl;
+    }
+    const newAtt = { 
+      id: Date.now().toString(), 
+      name: linkName.trim() || 'Enlace externo', 
+      url: finalUrl, 
+      type: 'link' 
+    };
+    await updateAttachments([...parsedAttachments, newAtt]);
+    setLinkUrl('');
+    setLinkName('');
+    setLinkInputOpen(false);
+  };
+
+  const handleRemoveFile = async (id: string) => {
+    await updateAttachments(parsedAttachments.filter((a: any) => a.id !== id));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [workId]);
 
   async function loadData() {
     try {
+      const allClients = await getClients();
+      setClients(allClients);
+
       const { data: w } = await supabase.from('works').select('*').eq('id', workId).single();
       if (w) {
         const mappedWork = {
           ...w,
           clientId: w.client_id,
           date: new Date(w.date),
+          previewUrl: w.preview_url ?? null,
           publishedBy: w.published_by ?? null,
           publishedAt: w.published_at ? new Date(w.published_at) : null
         };
         setWork(mappedWork);
         setNotes(mappedWork.notes || '');
-        const c = await getClient(mappedWork.clientId);
+        const c = allClients.find(client => client.id === mappedWork.clientId) || null;
         setClient(c);
       }
 
@@ -67,6 +154,19 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
       setLoading(false);
     }
   }
+
+  const handleDelete = async () => {
+    if (!confirm('¿Seguro que deseas eliminar este trabajo?')) return;
+    setSaving(true);
+    const { error } = await supabase.from('works').delete().eq('id', workId);
+    if (!error) {
+      router.push(`/admin/client/${work?.clientId}`);
+    } else {
+      setSaving(false);
+      setToast('Error al eliminar');
+      setTimeout(() => setToast(''), 2000);
+    }
+  };
 
   const handlePublish = async () => {
     if (!work) return;
@@ -162,13 +262,18 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px' }}>
-      <button 
-        onClick={() => router.push(`/admin/client/${work.clientId}`)} 
-        className="row gap-2 mb-6" 
-        style={{ background: 'transparent', border: 0, color: 'var(--muted)', fontSize: 13, padding: 0, cursor: 'pointer' }}
-      >
-        <Icon name="chevron_left" size={14} /> Volver a {client?.name || 'cliente'}
-      </button>
+      <div className="row between mb-6">
+        <button 
+          onClick={() => router.push(`/admin/client/${work.clientId}`)} 
+          style={{ background: 'transparent', border: 0, color: 'var(--muted)', fontSize: 13, padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <Icon name="chevron_left" size={14} /> Volver a {client?.name || 'cliente'}
+        </button>
+        <div className="row gap-2">
+          <ButtonCustom variant="ghost" onClick={() => setEditOpen(true)} icon="edit">Editar</ButtonCustom>
+          <ButtonCustom variant="ghost" onClick={handleDelete} icon="trash" style={{ color: 'var(--accent)' }}>Eliminar</ButtonCustom>
+        </div>
+      </div>
 
       <div className="card card-pad fade-in">
         <div className="row between mb-6" style={{ alignItems: 'flex-start' }}>
@@ -256,6 +361,116 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
               {saving ? 'Guardando...' : 'Guardar notas'}
             </ButtonCustom>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <label style={{ display: 'block', fontWeight: 500, marginBottom: 8 }}>Archivos adjuntos de la pieza</label>
+          
+          {parsedAttachments.length > 0 && (
+            <div className="col gap-3 mb-4">
+              {parsedAttachments.map((att: any) => {
+                const isVid = att.type === 'file' && /\.(mp4|webm|mov|m4v)($|\?)/i.test(att.url);
+                const isImg = att.type === 'file' && /\.(png|jpg|jpeg|gif|webp|svg)($|\?)/i.test(att.url);
+
+                return (
+                  <div key={att.id} style={{ position: 'relative', width: '100%', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--paper-2)' }}>
+                    {isVid ? (
+                      <video src={att.url} controls playsInline style={{ width: '100%', aspectRatio: '16/9', objectFit: 'contain', background: '#000' }} />
+                    ) : isImg ? (
+                      <img src={att.url} alt={att.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'contain', background: 'var(--paper-2)' }} />
+                    ) : (
+                      <div className="row gap-3" style={{ padding: '12px 16px', alignItems: 'center' }}>
+                        <Icon name={att.type === 'link' ? 'external' : 'file'} size={20} style={{ color: 'var(--accent)' }} />
+                        <div className="col" style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                          <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.url}</a>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => handleRemoveFile(att.id)}
+                      disabled={saving}
+                      style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: '#fff' }}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {linkInputOpen ? (
+            <div className="card card-pad" style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 12 }}>
+              <div className="row between mb-2">
+                <span style={{ fontSize: 12, fontWeight: 500 }}>Vincular enlace externo (Drive, Dropbox...)</span>
+                <button type="button" className="btn-icon" onClick={() => setLinkInputOpen(false)}><Icon name="close" size={14} /></button>
+              </div>
+              <div className="col gap-2">
+                <input 
+                  className="input" 
+                  placeholder="Nombre (ej. Recursos Drive)" 
+                  value={linkName} 
+                  onChange={(e) => setLinkName(e.target.value)} 
+                />
+                <input 
+                  className="input" 
+                  placeholder="URL (https://...)" 
+                  value={linkUrl} 
+                  onChange={(e) => setLinkUrl(e.target.value)} 
+                />
+                <ButtonCustom variant="accent" onClick={handleAddLink} disabled={!linkUrl.trim() || saving}>
+                  Añadir enlace
+                </ButtonCustom>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="drop-zone"
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              style={{ cursor: 'pointer', position: 'relative', padding: '24px 20px' }}
+            >
+              {uploading ? (
+                <div style={{ padding: '20px', color: 'var(--accent)' }}>Subiendo archivo...</div>
+              ) : (
+                <>
+                  <Icon name="plus" size={20} /><br />
+                  <span>
+                    Arrastra un archivo aquí o{' '}
+                    <strong 
+                      style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      súbelo desde tu equipo
+                    </strong>
+                  </span>
+                  <div className="mt-2 row gap-2" style={{ justifyContent: 'center' }}>
+                    <ButtonCustom variant="ghost" onClick={() => setLinkInputOpen(true)} icon="link" style={{ fontSize: 11, padding: '4px 10px', height: 'auto' }}>
+                      Vincular enlace (Drive, etc.)
+                    </ButtonCustom>
+                  </div>
+                  <br />
+                  <span style={{ fontSize: 11 }}>Sube varios archivos o enlaza carpetas externas</span>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+                      e.target.value = '';
+                    }} 
+                  />
+                </>
+              )}
+            </div>
+          )}
+
+          {uploadError && (
+            <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4 }}>{uploadError}</p>
+          )}
         </div>
 
         {/* Comments / Chat Section */}
@@ -351,6 +566,14 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
       </div>
+
+      <EditWorkModal 
+        open={editOpen} 
+        onClose={() => setEditOpen(false)} 
+        clients={clients} 
+        work={work} 
+        onUpdated={loadData} 
+      />
 
       {toast && (
         <div className="toast">

@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+import { createClient as createSupabaseJs } from '@supabase/supabase-js';
+import { updateClientAction } from '@/app/actions/clients';
 
 // ── Palette suggestions ───────────────────────────────────────
 const COLOR_PALETTE = [
@@ -148,6 +150,7 @@ function AvatarPreview({ accountName, color, logoPreview, onUploadClick, onRemov
 // ── Modal ─────────────────────────────────────────────────────
 export function NewClientModal({ open, onClose, onCreated, initialData }: NewClientModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
   // Form state
   const [accountName,    setAccountName]    = useState('');
@@ -331,21 +334,72 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
     };
 
     if (initialData?.id) {
-      const { error: err } = await supabase.from('clients').update(payload).eq('id', initialData.id);
+      const result = await updateClientAction(initialData.id, payload);
       setSaving(false);
-      if (err) { setError('Error al actualizar: ' + err.message); return; }
+      if (!result.success) { 
+        setError('Error al actualizar: ' + result.error); 
+        return; 
+      }
     } else {
       const { error: err } = await supabase.from('clients').insert({
         id,
         ...payload
       });
+      if (err) { 
+        setSaving(false);
+        setError('Error al guardar: ' + err.message); 
+        return; 
+      }
+
+      // Create auth user without affecting the admin session
+      const tempSupabase = createSupabaseJs(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+
+      // Sign up with a random complex password
+      const randomPassword = 'Temp_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '!';
+      const { error: signUpError } = await tempSupabase.auth.signUp({
+        email: email.trim(),
+        password: randomPassword,
+        options: {
+          data: { role: 'client', client_id: id }
+        }
+      });
+
+      if (!signUpError) {
+        // Send reset password email so they can set their own password
+        await tempSupabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin + '/reset-password',
+        });
+      }
+
       setSaving(false);
-      if (err) { setError('Error al guardar: ' + err.message); return; }
     }
 
     onCreated();
     onClose();
   }, [accountName, handle, sector, email, phone, startDate, retainer, retainerLabel, color, socials, logoFile, brandTone, accessInfo, nextMeeting, onCreated, onClose, initialData]);
+
+  // ── Delete ────────────────────────────────────────────────
+  const handleDelete = useCallback(async () => {
+    if (!initialData?.id) return;
+    if (!window.confirm('¿Estás seguro de que quieres eliminar a este cliente? Se borrarán también sus datos.')) return;
+    
+    setSaving(true);
+    setError('');
+    const { error: err } = await supabase.from('clients').delete().eq('id', initialData.id);
+    setSaving(false);
+    
+    if (err) { 
+      setError('Error al eliminar: ' + err.message); 
+      return; 
+    }
+    
+    onCreated();
+    onClose();
+  }, [initialData, onCreated, onClose]);
 
   if (!open) return null;
 
@@ -677,18 +731,25 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
         </div>
 
         {/* ── Footer ── */}
-        <div className="modal-foot">
-          <ButtonCustom variant="ghost" onClick={onClose} disabled={saving}>
-            Cancelar
-          </ButtonCustom>
-          <ButtonCustom
-            variant="accent"
-            icon="check"
-            onClick={handleSubmit}
-            disabled={saving || !accountName.trim() || !email.trim()}
-          >
-            {saving ? 'Guardando…' : 'Crear cliente'}
-          </ButtonCustom>
+        <div className="modal-foot" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          {initialData ? (
+            <ButtonCustom variant="ghost" onClick={handleDelete} disabled={saving} style={{ color: 'var(--accent)' }}>
+              Eliminar cliente
+            </ButtonCustom>
+          ) : <div />}
+          <div className="row gap-2">
+            <ButtonCustom variant="ghost" onClick={onClose} disabled={saving}>
+              Cancelar
+            </ButtonCustom>
+            <ButtonCustom
+              variant="accent"
+              icon="check"
+              onClick={handleSubmit}
+              disabled={saving || !accountName.trim() || !email.trim()}
+            >
+              {saving ? 'Guardando…' : (initialData ? 'Guardar cambios' : 'Crear cliente')}
+            </ButtonCustom>
+          </div>
         </div>
       </div>
     </div>

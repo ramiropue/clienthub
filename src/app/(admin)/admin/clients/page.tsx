@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { eur, totalFor, MONTH_NAMES, worksFor } from '@/lib/mock-data';
-import { getClients, getWorks, Client, Work } from '@/lib/data';
+import { getClients, getWorks, getWorkTypes, Client, Work, WorkType } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { ButtonCustom } from '@/components/ui/button-custom';
 import { Icon } from '@/components/ui/icon';
@@ -18,13 +18,20 @@ const CM   = now.getMonth();
 interface ClientCardProps {
   client: Client;
   works: Work[];
+  workTypes: WorkType[];
   onClick: () => void;
 }
 
-function ClientCard({ client, works, onClick }: ClientCardProps) {
-  const totals   = totalFor(works, client.id, CY, CM);
-  const pending  = worksFor(works, client.id, CY, CM).filter(w => w.status === 'borrador').length;
+function ClientCard({ client, works, workTypes, onClick }: ClientCardProps) {
+  const list = works.filter(w => w.clientId === client.id && w.date.getFullYear() === CY && w.date.getMonth() === CM);
+  const pending = list.filter(w => w.status === 'borrador').length;
   const monthStr = MONTH_NAMES[CM].toLowerCase();
+  
+  const variable = list.filter(w => w.status === 'publicado').reduce((s, w) => s + w.price, 0);
+  
+  const retainer = client.monthlyRetainer || 0;
+  const total = retainer + variable;
+  const count = list.length;
 
   return (
     <div
@@ -88,18 +95,18 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
               lineHeight: 1,
               letterSpacing: 0,
             }}>
-              {eur(totals.total)}
+              {eur(total)}
             </div>
           </div>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 4 }}>Piezas</div>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Trabajos</div>
             <div style={{
               fontFamily: 'var(--font-display)',
               fontSize: 22,
               lineHeight: 1,
               letterSpacing: 0,
             }}>
-              {totals.count}
+              {count}
             </div>
           </div>
           <div>
@@ -141,12 +148,12 @@ function ClientCard({ client, works, onClick }: ClientCardProps) {
               <span className="dot" /> {pending} pendiente{pending > 1 ? 's' : ''}
             </span>
           )}
-          {pending === 0 && totals.count > 0 && (
+          {pending === 0 && count > 0 && (
             <span className="badge badge-ok">
               <span className="dot" /> Al día
             </span>
           )}
-          {totals.count === 0 && (
+          {count === 0 && (
             <span className="badge badge-muted">Sin actividad</span>
           )}
         </div>
@@ -160,22 +167,25 @@ export default function ClientsPage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [works,   setWorks]   = useState<Work[]>([]);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
+      setWorkTypes(wt);
       setLoading(false);
     });
   }, []);
 
   function reload() {
-    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
+      setWorkTypes(wt);
     });
   }
 
@@ -189,7 +199,12 @@ export default function ClientsPage() {
   );
 
   // Summary totals
-  const totalMes = clients.reduce((s, c) => s + totalFor(works, c.id, CY, CM).total, 0);
+  const totalMes = clients.reduce((sum, c) => {
+    const list = works.filter(w => w.clientId === c.id && w.date.getFullYear() === CY && w.date.getMonth() === CM);
+    const billableWorks = list.filter(w => w.status === 'publicado').reduce((s, w) => s + w.price, 0);
+    return sum + (c.monthlyRetainer || 0) + billableWorks;
+  }, 0);
+
   const totalPendientes = clients.reduce((s, c) =>
     s + worksFor(works, c.id, CY, CM).filter(w => w.status === 'borrador').length, 0
   );
@@ -301,6 +316,7 @@ export default function ClientsPage() {
                 key={client.id}
                 client={client}
                 works={works}
+                workTypes={workTypes}
                 onClick={() => router.push(`/admin/client/${client.id}`)}
               />
             ))}

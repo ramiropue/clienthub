@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { totalFor, eur, MONTH_NAMES } from '@/lib/mock-data';
-import { getClients, getWorks, Client, Work } from '@/lib/data';
+import { getClients, getWorks, getWorkTypes, Client, Work, WorkType } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { SectionTitle } from '@/components/shared/section-title';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
@@ -35,10 +35,13 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [works, setWorks]     = useState<Work[]>([]);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen]               = useState(false);
   const [preselectClientId, setPreselectClientId] = useState<string | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // ── month state ────────────────────────────────────────
   const [month, setMonth]           = useState(INITIAL_MONTH);
@@ -68,9 +71,10 @@ export default function AdminDashboardPage() {
   useEffect(() => { loadData(); }, []);
 
   function loadData() {
-    Promise.all([getClients(), getWorks()]).then(([c, w]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
+      setWorkTypes(wt);
       setLoading(false);
     });
   }
@@ -81,27 +85,54 @@ export default function AdminDashboardPage() {
   };
 
   // ── derived data (all reactive to `month`) ────────────
-  const totalsByClient = clients.map(c => ({
-    client: c,
-    ...totalFor(works, c.id, month.year, month.month),
-    pending: works.filter(
-      w => w.clientId === c.id &&
-           w.date.getFullYear() === month.year &&
-           w.date.getMonth() === month.month &&
-           w.status === 'borrador'
-    ).length,
-  }));
-
-  const totalMonth   = totalsByClient.reduce((s, c) => s + c.total, 0);
-  const prev         = prevMonth(month);
-  const lastTotal    = clients.reduce((s, c) => s + totalFor(works, c.id, prev.year, prev.month).total, 0);
-  const deltaPct     = lastTotal > 0 ? Math.round(((totalMonth - lastTotal) / lastTotal) * 100) : 0;
-  const prevMonthName = MONTH_NAMES[prev.month].toLowerCase();
-
+  // ── derived data (all reactive to `month`) ────────────
   const worksThisMonth = works.filter(
     w => w.date.getFullYear() === month.year && w.date.getMonth() === month.month
   );
-  const pending = worksThisMonth.filter(w => w.status === 'borrador').length;
+
+  const filteredWorksThisMonth = filterStatus 
+    ? worksThisMonth.filter(w => w.status === filterStatus) 
+    : worksThisMonth;
+
+  const totalsByClient = clients.map(c => {
+    // For counting/displaying in the table, we use the filtered works if any
+    const list = filteredWorksThisMonth.filter(w => w.clientId === c.id);
+    const pending = list.filter(w => w.status === 'borrador').length;
+    const approved = list.filter(w => w.status === 'aprobado').length;
+    const published = list.filter(w => w.status === 'publicado').length;
+    
+    // For totals, we use all works this month for this client (unfiltered)
+    const allList = worksThisMonth.filter(w => w.clientId === c.id);
+    const billableList = allList.filter(w => w.status === 'publicado');
+    const variable = billableList.reduce((s, w) => s + w.price, 0);
+    const retainer = c.monthlyRetainer || 0;
+    const total = retainer + variable;
+    const billableTotal = total;
+
+    return {
+      client: c,
+      retainer,
+      variable,
+      total,
+      billableTotal,
+      count: list.length,
+      pending,
+      approved,
+      published,
+    };
+  });
+
+  const totalMonthFacturado = totalsByClient.reduce((s, c) => s + c.billableTotal, 0);
+  const pendingOverall = worksThisMonth.filter(w => w.status === 'borrador').length;
+
+  const prev = prevMonth(month);
+  const lastTotal = clients.reduce((sum, c) => {
+    const listPrev = works.filter(w => w.clientId === c.id && w.date.getFullYear() === prev.year && w.date.getMonth() === prev.month);
+    const billablePrev = listPrev.filter(w => w.status === 'publicado').reduce((s, w) => s + w.price, 0);
+    return sum + (c.monthlyRetainer || 0) + billablePrev;
+  }, 0);
+  const deltaPct = lastTotal > 0 ? Math.round(((totalMonthFacturado - lastTotal) / lastTotal) * 100) : 0;
+  const prevMonthName = MONTH_NAMES[prev.month].toLowerCase();
 
   const isCurrentMonth =
     month.year === now.getFullYear() && month.month === now.getMonth();
@@ -239,19 +270,19 @@ export default function AdminDashboardPage() {
         <div className="kpi-grid mb-4">
           <div className="kpi accent">
             <div className="kpi-label">Facturado este mes</div>
-            <div className="kpi-value"><em>{eur(totalMonth)}</em></div>
+            <div className="kpi-value"><em>{eur(totalMonthFacturado)}</em></div>
             <div className="kpi-delta" style={{ color: deltaPct >= 0 ? 'var(--accent)' : 'rgba(255,255,255,.6)' }}>
               {deltaPct >= 0 ? '↑' : '↓'} {Math.abs(deltaPct)}% vs. {prevMonthName}
             </div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Trabajos</div>
-            <div className="kpi-value">{worksThisMonth.length}</div>
+            <div className="kpi-value">{filteredWorksThisMonth.length}</div>
             <div className="kpi-delta">en {MONTH_NAMES[month.month].toLowerCase()}</div>
           </div>
           <div className="kpi">
             <div className="kpi-label">Pendientes de aprobar</div>
-            <div className="kpi-value">{pending}</div>
+            <div className="kpi-value">{pendingOverall}</div>
             <div className="kpi-delta neg">borradores</div>
           </div>
           <div className="kpi">
@@ -265,9 +296,28 @@ export default function AdminDashboardPage() {
           title="Tus clientes"
           subtitle={`Resumen de ${MONTH_NAMES[month.month].toLowerCase()} ${month.year}`}
           right={
-            <div className="row gap-2">
-              <button className="btn-icon"><Icon name="search" size={16} /></button>
-              <button className="btn-icon"><Icon name="filter" size={16} /></button>
+            <div className="row gap-2" style={{ position: 'relative' }}>
+              <button 
+                className="btn-icon" 
+                style={{ color: filterStatus ? 'var(--accent)' : 'inherit' }}
+                onClick={() => setFilterOpen(!filterOpen)}
+              >
+                <Icon name="filter" size={16} />
+              </button>
+              {filterOpen && (
+                <div style={{
+                  position: 'absolute', right: 0, top: '100%',
+                  background: 'var(--card)', border: '1px solid var(--line)',
+                  borderRadius: 8, padding: '4px', zIndex: 10, width: 140,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: 4,
+                  display: 'flex', flexDirection: 'column', gap: 2
+                }}>
+                  <div className="menu-item" onClick={() => { setFilterStatus(null); setFilterOpen(false); }} style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderRadius: 4, background: filterStatus === null ? 'var(--bg)' : 'transparent' }}>Todos</div>
+                  <div className="menu-item" onClick={() => { setFilterStatus('borrador'); setFilterOpen(false); }} style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderRadius: 4, background: filterStatus === 'borrador' ? 'var(--bg)' : 'transparent' }}>Borrador</div>
+                  <div className="menu-item" onClick={() => { setFilterStatus('aprobado'); setFilterOpen(false); }} style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderRadius: 4, background: filterStatus === 'aprobado' ? 'var(--bg)' : 'transparent' }}>Aprobado</div>
+                  <div className="menu-item" onClick={() => { setFilterStatus('publicado'); setFilterOpen(false); }} style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderRadius: 4, background: filterStatus === 'publicado' ? 'var(--bg)' : 'transparent' }}>Publicado</div>
+                </div>
+              )}
             </div>
           }
         />
@@ -281,7 +331,7 @@ export default function AdminDashboardPage() {
             <div style={{ textAlign: 'right' }}>Total {MONTH_NAMES[month.month].slice(0, 3).toLowerCase()}.</div>
             <div />
           </div>
-          {totalsByClient.map(({ client, retainer, variable, total, count, pending }) => (
+          {totalsByClient.map(({ client, retainer, variable, total, count, pending, approved, published }) => (
             <div key={client.id} className="client-row" onClick={() => handleOpenClient(client.id)}>
               <div className="cell-client">
                 <AvatarCustom name={client.name} color={client.color} initials={client.initials} />
@@ -292,8 +342,12 @@ export default function AdminDashboardPage() {
               </div>
               <div className="cell-hide-mobile mono">{eur(retainer)}</div>
               <div className="cell-hide-mobile">
-                {count} <span style={{ color: 'var(--muted)' }}>piezas</span>
-                {pending > 0 && <span className="badge badge-warn" style={{ marginLeft: 8 }}><span className="dot" /> {pending}</span>}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {published > 0 && <span className="badge badge-ok" style={{ fontSize: 10, padding: '2px 6px' }}><span className="dot"/>{published} pub</span>}
+                  {approved > 0 && <span className="badge badge-info" style={{ fontSize: 10, padding: '2px 6px' }}><span className="dot"/>{approved} apr</span>}
+                  {pending > 0 && <span className="badge badge-warn" style={{ fontSize: 10, padding: '2px 6px' }}><span className="dot"/>{pending} bor</span>}
+                  {count === 0 && <span style={{ color: 'var(--muted)', fontSize: 11 }}>0 trabajos</span>}
+                </div>
               </div>
               <div className="cell-hide-mobile mono">{eur(variable)}</div>
               <div className="cell-amount" style={{ textAlign: 'right' }}>{eur(total)}</div>
@@ -306,10 +360,10 @@ export default function AdminDashboardPage() {
           <div className="card card-pad flex-1" style={{ minWidth: 280 }}>
             <div className="eyebrow">Actividad · {MONTH_NAMES[month.month].toLowerCase()}</div>
             <div className="mt-2" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {worksThisMonth.length === 0 && (
+              {filteredWorksThisMonth.length === 0 && (
                 <p style={{ fontSize: 13, color: 'var(--muted)' }}>Sin actividad este mes.</p>
               )}
-              {worksThisMonth.slice().sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 4).map(w => {
+              {filteredWorksThisMonth.slice().sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 4).map(w => {
                 const c = clients.find(cl => cl.id === w.clientId);
                 if (!c) return null;
                 return (

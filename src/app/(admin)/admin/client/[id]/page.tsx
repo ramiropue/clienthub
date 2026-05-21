@@ -26,12 +26,14 @@ function worksFor(works: Work[], clientId: string, year: number, month: number) 
 // Helper for calculating totals
 function totalFor(works: Work[], clientId: string, year: number, month: number, retainer: number) {
   const list = worksFor(works, clientId, year, month);
-  const variable = list.reduce((s, w) => s + w.price, 0);
+  const billableList = list.filter(w => w.status === 'publicado');
+  const variable = billableList.reduce((s, w) => s + w.price, 0);
   return {
     retainer,
     variable,
     total: retainer + variable,
-    count: list.length
+    count: billableList.length,
+    allCount: list.length
   };
 }
 
@@ -162,13 +164,25 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
   const currentMonthNum = currentDate.getMonth();
 
   const monthWorksAll = worksFor(works, clientId, currentYear, currentMonthNum).sort((a, b) => b.date.getTime() - a.date.getTime());
-  const monthWorksFiltered = monthWorksAll.filter(w => {
+  
+  let filteredWorks = monthWorksAll;
+  if (viewMode === 'week') {
+    const dayOfWeekToday = (currentDate.getDay() + 6) % 7;
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeekToday);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    filteredWorks = monthWorksAll.filter(w => w.date >= startOfWeek && w.date <= endOfWeek);
+  }
+
+  const worksByStatus = filteredWorks.filter(w => {
     if (filterStatus === 'Todo') return true;
     const typeDef = getType(w.type);
     if (typeDef?.group !== 'contenido') return false;
     return w.status.toLowerCase() === filterStatus.toLowerCase();
   });
-  const groups = groupByWeek(monthWorksFiltered);
+
+  const groups = groupByWeek(worksByStatus);
   
   const totals = totalFor(works, clientId, currentYear, currentMonthNum, client?.monthlyRetainer || 0);
 
@@ -367,8 +381,8 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                       ))}
                     </div>
                     <div className="segment">
-                      <button className="active">Mes</button>
-                      <button>Semana</button>
+                      <button className={viewMode === 'month' ? 'active' : ''} onClick={() => setViewMode('month')}>Mes</button>
+                      <button className={viewMode === 'week' ? 'active' : ''} onClick={() => setViewMode('week')}>Semana</button>
                     </div>
                   </div>
 
@@ -471,7 +485,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                       <div key={m.label} className="history-row fade-in" style={{ padding: '18px 22px' }}>
                         <div className="col" style={{ gap: 2, flex: 1 }}>
                           <div className="h-month">{m.label}</div>
-                          <div className="h-meta">{t.count} piezas · cuota mensual {eur(t.retainer)}</div>
+                          <div className="h-meta">{t.count} trabajos cobrados · cuota mensual {eur(t.retainer)}</div>
                         </div>
                         {m.isCurrent && <span className="badge badge-accent"><span className="dot" /> En curso</span>}
                         <div className="h-amount">{eur(t.total)}</div>
@@ -552,7 +566,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               <div className="total">
                 {eur(totals.total).replace('€','')}<em>€</em>
               </div>
-              <div className="total-sub">{totals.count} trabajos + cuota mensual</div>
+              <div className="total-sub">{totals.count} trabajos extra cobrados + cuota mensual</div>
 
               <div className="line-item">
                 <span className="label">{client.retainerLabel || 'Cuota mensual'}</span>
@@ -645,7 +659,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               {monthWorksAll.length > 0 && (
                 <tr>
                   <td style={{ padding: '20px 0', borderBottom: '1px solid #eee' }}>
-                    <div style={{ fontWeight: 500, fontSize: '15px' }}>Trabajos Extra / Piezas del mes</div>
+                    <div style={{ fontWeight: 500, fontSize: '15px' }}>Trabajos Extra / Piezas finalizadas</div>
                     <div style={{ color: '#777', fontSize: '13px', marginTop: '4px' }}>
                       {monthWorksAll.slice(0, 5).map(w => w.title).join(' · ')}{monthWorksAll.length > 5 ? '...' : ''}
                     </div>

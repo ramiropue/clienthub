@@ -301,8 +301,16 @@ export default function ClienteWorkDetailPage({
   }
 
   const typeDef = getType(work.type);
-  const isVideo = work.preview_url && /\.(mp4|webm|mov|m4v)($|\?)/i.test(work.preview_url);
-  const isImage = work.preview_url && /\.(png|jpg|jpeg|gif|webp|svg)($|\?)/i.test(work.preview_url);
+
+  const parsedAttachments = React.useMemo(() => {
+    if (!work?.preview_url) return [];
+    try {
+      if (work.preview_url.startsWith('[')) return JSON.parse(work.preview_url);
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
+    } catch {
+      return [{ id: 'legacy', name: 'Archivo adjunto', url: work.preview_url, type: 'file' }];
+    }
+  }, [work?.preview_url]);
 
   return (
     <div
@@ -366,67 +374,73 @@ export default function ClienteWorkDetailPage({
       <div style={{ padding: '18px 18px 60px', maxWidth: 640, margin: '0 auto', width: '100%' }} className="fade-in">
         
         {/* Preview Area */}
-        <div className="mb-4">
-          {work.preview_url ? (
-            <div style={{ position: 'relative', width: '100%', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--paper-2)' }}>
-              {isVideo ? (
-                <video
-                  src={work.preview_url}
-                  controls
-                  playsInline
-                  style={{ width: '100%', aspectRatio: '4/5', objectFit: 'contain', background: '#000' }}
-                />
-              ) : isImage ? (
-                <img
-                  src={work.preview_url}
-                  alt={work.title}
-                  style={{ width: '100%', aspectRatio: '4/5', objectFit: 'contain', background: 'var(--paper-2)' }}
-                />
-              ) : (
-                /* External / Google Drive picker / Figma preview placeholder link */
-                <div style={{ width: '100%', aspectRatio: '4/5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      background: 'rgba(232, 66, 26, 0.08)',
-                      color: 'var(--accent)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Icon name="external" size={28} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>Pieza adjunta externa</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, maxWidth: 280, lineHeight: 1.4 }}>
-                      Esta pieza está alojada externamente (Google Drive, Figma, Canva, etc.). Haz clic para revisarla.
+        <div className="mb-4 col gap-4">
+          {parsedAttachments.length > 0 ? (
+            parsedAttachments.map((att: any) => {
+              const isVid = att.type === 'file' && /\.(mp4|webm|mov|m4v)($|\?)/i.test(att.url);
+              const isImg = att.type === 'file' && /\.(png|jpg|jpeg|gif|webp|svg)($|\?)/i.test(att.url);
+
+              return (
+                <div key={att.id} style={{ position: 'relative', width: '100%', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--line)', background: 'var(--paper-2)' }}>
+                  {isVid ? (
+                    <video
+                      src={att.url}
+                      controls
+                      playsInline
+                      style={{ width: '100%', aspectRatio: '4/5', objectFit: 'contain', background: '#000' }}
+                    />
+                  ) : isImg ? (
+                    <img
+                      src={att.url}
+                      alt={att.name}
+                      style={{ width: '100%', aspectRatio: '4/5', objectFit: 'contain', background: 'var(--paper-2)' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
+                      <div
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: '50%',
+                          background: 'rgba(232, 66, 26, 0.08)',
+                          color: 'var(--accent)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Icon name={att.type === 'link' ? 'external' : 'file'} size={28} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 15 }}>{att.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, maxWidth: 280, lineHeight: 1.4 }}>
+                          {att.type === 'link' ? 'Esta pieza está alojada externamente. Haz clic para revisarla.' : 'Archivo adjunto. Haz clic para descargarlo o verlo.'}
+                        </div>
+                      </div>
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-accent btn-sm row gap-2"
+                        style={{
+                          textDecoration: 'none',
+                          padding: '8px 16px',
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          background: 'var(--ink)',
+                          color: '#fff',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        Revisar archivo <Icon name="arrow_up_right" size={13} style={{ marginLeft: 4 }} />
+                      </a>
                     </div>
-                  </div>
-                  <a
-                    href={work.preview_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-accent btn-sm row gap-2"
-                    style={{
-                      textDecoration: 'none',
-                      padding: '8px 16px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      background: 'var(--ink)',
-                      color: '#fff',
-                      display: 'inline-flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    Revisar pieza <Icon name="arrow_up_right" size={13} style={{ marginLeft: 4 }} />
-                  </a>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })
           ) : (
             /* Fallback abstract thumbnail based on client brand colors */
             <div

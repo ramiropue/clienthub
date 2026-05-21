@@ -43,6 +43,17 @@ export default function AdminCalendarPage() {
 
   const monthWorks = works.filter(w => w.date.getFullYear() === 2026 && w.date.getMonth() === 4);
 
+  const dayOfWeekToday = (new Date(2026, 4, 15).getDay() + 6) % 7;
+  const startOfWeek = new Date(2026, 4, 15);
+  startOfWeek.setDate(startOfWeek.getDate() - dayOfWeekToday);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+  const weekWorks = works.filter(w => w.date >= startOfWeek && w.date <= endOfWeek);
+  
+  const currentWorks = viewMode === 'week' ? weekWorks : monthWorks;
+  const periodLabel = viewMode === 'week' ? 'esta semana' : 'en mayo';
+
   return (
     <div>
       <div className="main-header">
@@ -124,7 +135,7 @@ export default function AdminCalendarPage() {
         </div>
         <div className="col gap-4" style={{ flex: 1 }}>
           {clients.map(c => {
-            const list = monthWorks.filter(w => w.clientId === c.id);
+            const list = currentWorks.filter(w => w.clientId === c.id);
             return (
               <div 
                 key={c.id} 
@@ -133,10 +144,10 @@ export default function AdminCalendarPage() {
                 onClick={() => router.push(`/admin/client/${c.id}`)}
               >
                 <div className="row gap-3" style={{ alignItems: 'center' }}>
-                  <AvatarCustom name={c.name} color={c.color} initials={c.initials} />
+                  <AvatarCustom name={c.name} color={c.color} initials={c.initials} logoUrl={c.logoUrl} />
                   <div className="flex-1">
                     <div style={{ fontWeight: 500 }}>{c.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>{list.length} piezas en mayo</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>{list.length} trabajos {periodLabel}</div>
                   </div>
                   <Icon name="chevron_right" size={16} className="text-muted" />
                 </div>

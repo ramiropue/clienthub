@@ -31,6 +31,7 @@ export interface Work {
   price: number;
   thumb: string | null;
   notes: string | null;
+  previewUrl?: string | null;
   publishedBy?: string | null;
   publishedAt?: Date | null;
 }
@@ -74,6 +75,7 @@ function mapWork(w: any): Work {
     ...w,
     clientId: w.client_id,
     date: new Date(w.date),
+    previewUrl: w.preview_url ?? null,
     publishedBy: w.published_by ?? null,
     publishedAt: w.published_at ? new Date(w.published_at) : null
   };
