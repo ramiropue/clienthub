@@ -1333,6 +1333,9 @@ a { color: inherit; text-decoration: none; }
     display: grid !important;
     padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
   }
+  .client-bottomnav {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+  }
   .hide-mobile {
     display: none !important;
   }

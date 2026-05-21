@@ -73,7 +73,7 @@ export function ClienteBottomNav({ clientId }: { clientId: string }) {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav style={{
+    <nav className="client-bottomnav" style={{
       position: 'sticky',
       bottom: 0,
       background: 'rgba(245,242,236,.92)',

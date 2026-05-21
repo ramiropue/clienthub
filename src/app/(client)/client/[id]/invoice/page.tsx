@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
-import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
+import { getClient, getWorksForClient, Client, Work, getSettings, Settings } from '@/lib/data';
 import { ButtonCustom } from '@/components/ui/button-custom';
 
 export default function ClienteInvoicePage({
@@ -17,12 +17,18 @@ export default function ClienteInvoicePage({
   const clientId = unwrappedParams.id;
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getClient(clientId), getWorksForClient(clientId)]).then(([c, w]) => {
+    Promise.all([
+      getClient(clientId), 
+      getWorksForClient(clientId),
+      getSettings()
+    ]).then(([c, w, s]) => {
       setClient(c);
       setWorks(w);
+      setSettings(s);
       setLoading(false);
     });
   }, [clientId]);
@@ -65,10 +71,10 @@ export default function ClienteInvoicePage({
       <div className="invoice-paper">
         <div className="head">
           <div className="from">
-            <strong>Ramiro</strong><br/>
-            Social media & estrategia<br />
-            ESB-12345678<br />
-            hola@ramiro.studio
+            <strong>{settings?.companyName || settings?.profileName || 'Ramiro'}</strong><br/>
+            {settings?.profileRole || 'Social media & estrategia'}<br />
+            {settings?.companyId && <>{settings.companyId}<br /></>}
+            {settings?.companyAddress && <span style={{ fontSize: 11, color: 'var(--muted)', display: 'inline-block', maxWidth: 200, lineHeight: 1.3 }}>{settings.companyAddress}</span>}
           </div>
           <div style={{ textAlign: 'right' }}>
             <div className="num">N.º {my.year}-05-{client.id === 'pilar' ? '014' : '015'}</div>
