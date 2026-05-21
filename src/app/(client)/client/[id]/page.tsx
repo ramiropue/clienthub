@@ -14,6 +14,7 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
   const clientId = unwrappedParams.id;
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
+  const [workTypes, setWorkTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState('Antía');
   const [filterPending, setFilterPending] = useState(false);
@@ -22,12 +23,18 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
     Promise.all([
       getClient(clientId), 
       getWorksForClient(clientId),
-      supabase.from('settings').select('profile_name').single()
-    ]).then(([c, w, sRes]) => {
+      supabase.from('settings').select('profile_name').single(),
+      supabase.from('work_types').select('*')
+    ]).then(([c, w, sRes, wtRes]) => {
       setClient(c);
       setWorks(w);
       if (sRes?.data?.profile_name) {
         setAdminName(sRes.data.profile_name);
+      }
+      if (wtRes?.data) {
+        setWorkTypes(wtRes.data.map((wt: any) => ({
+          id: wt.id, name: wt.name, price: Number(wt.price), unit: wt.unit, group: wt.group_name, icon: wt.icon
+        })));
       }
       setLoading(false);
     });
@@ -40,14 +47,14 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
   const monthWorks = worksFor(works, client.id, month.year, month.month).sort((a, b) => b.date.getTime() - a.date.getTime());
   const filteredWorks = filterPending
     ? monthWorks.filter(w => {
-        const typeDef = getType(w.type);
+        const typeDef = workTypes.find(t => t.id === w.type) || getType(w.type);
         return typeDef?.group === 'contenido' && w.status === 'borrador';
       })
     : monthWorks;
   const groups = groupByWeek(filteredWorks);
   const totals = totalFor(works, client.id, month.year, month.month);
   const pending = monthWorks.filter(w => {
-    const typeDef = getType(w.type);
+    const typeDef = workTypes.find(t => t.id === w.type) || getType(w.type);
     return typeDef?.group === 'contenido' && w.status === 'borrador';
   }).length;
 
@@ -146,7 +153,7 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="work-list">
               {g.items.map((w: any) => (
-                <WorkRow key={w.id} work={w} onClick={() => handleOpenWork(w.id)} compact />
+                <WorkRow key={w.id} work={w} workType={workTypes.find(t => t.id === w.type)} onClick={() => handleOpenWork(w.id)} compact />
               ))}
             </div>
           </div>

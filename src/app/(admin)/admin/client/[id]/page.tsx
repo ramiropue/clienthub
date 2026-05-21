@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
+import { getClient, getWorksForClient, getWorkTypes, Client, Work, WorkType } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -71,6 +71,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [tab, setTab] = useState('trabajos');
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -96,9 +97,10 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
   async function loadWorks() {
     try {
-      const [c, w] = await Promise.all([getClient(clientId), getWorksForClient(clientId)]);
+      const [c, w, wt] = await Promise.all([getClient(clientId), getWorksForClient(clientId), getWorkTypes()]);
       setClient(c);
       setWorks(w);
+      setWorkTypes(wt);
       if (c) {
         setNotesState({
           brandTone: c.brandTone || '',
@@ -177,7 +179,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
   const worksByStatus = filteredWorks.filter(w => {
     if (filterStatus === 'Todo') return true;
-    const typeDef = getType(w.type);
+    const typeDef = workTypes.find(t => t.id === w.type) || getType(w.type);
     if (typeDef?.group !== 'contenido') return false;
     return w.status.toLowerCase() === filterStatus.toLowerCase();
   });
@@ -407,6 +409,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                             <WorkRow
                               key={w.id}
                               work={w}
+                              workType={workTypes.find(t => t.id === w.type)}
                               onClick={() => {
                                 router.push(`/admin/work/${w.id}`);
                               }}
@@ -472,6 +475,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                             <WorkRow
                               key={w.id}
                               work={w}
+                              workType={workTypes.find(t => t.id === w.type)}
                               onClick={() => router.push(`/admin/work/${w.id}`)}
                               onStatusChange={(newStatus: string) => updateWorkStatus(w.id, newStatus)}
                               compact

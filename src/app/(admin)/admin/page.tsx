@@ -373,7 +373,15 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: 13, lineHeight: 1.3 }}>{w.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>{c.name} · {w.date.getDate()} {MONTH_NAMES[w.date.getMonth()].toLowerCase()}</div>
                     </div>
-                    <StatusBadge status={w.status} />
+                    <div 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        const next = w.status === 'borrador' ? 'aprobado' : (w.status === 'aprobado' ? 'publicado' : 'borrador');
+                        updateWorkStatus(w.id, next);
+                      }}
+                    >
+                      <StatusBadge status={w.status} />
+                    </div>
                   </div>
                 );
               })}
@@ -441,6 +449,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <WorkRow
                         work={w}
+                        workType={workTypes.find(t => t.id === w.type)}
                         onClick={() => router.push(`/admin/work/${w.id}`)}
                         onStatusChange={(newStatus: string) => updateWorkStatus(w.id, newStatus)}
                         compact

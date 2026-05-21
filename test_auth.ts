@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -6,11 +9,21 @@ const supabase = createClient(
 );
 
 async function test() {
-  const email = 'ramiropue08@gmail.com';
-  // Let's first try to reset the password directly to see if updateUser works when authenticated
-  // Wait, I can't authenticate without the password.
-  // But I can check if the user exists.
-  console.log("Checking user...");
+  const email = 'ramirotecnologia@gmail.com';
+  const password = 'AdminPassword123!';
+  
+  console.log("Creating new admin user...");
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error("Error creating user:", error.message);
+  } else {
+    console.log("User created successfully:", data.user?.id);
+  }
 }
 
 test();
+

@@ -302,10 +302,27 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
             </label>
             
             {work.status === 'borrador' && (
-              <div className="row gap-3" style={{ alignItems: 'center' }}>
-                <span className="dot animate-pulse" style={{ width: 10, height: 10, background: 'var(--warn)', borderRadius: 99, display: 'inline-block' }} />
-                <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                  Esta pieza está en <strong>Borrador</strong>. Esperando a que el cliente ({client?.name || 'Cliente'}) dé su visto bueno.
+              <div className="col gap-3">
+                <div className="row gap-3" style={{ alignItems: 'center' }}>
+                  <span className="dot animate-pulse" style={{ width: 10, height: 10, background: 'var(--warn)', borderRadius: 99, display: 'inline-block' }} />
+                  <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                    Esta pieza está en <strong>Borrador</strong>. Esperando a que el cliente ({client?.name || 'Cliente'}) dé su visto bueno.
+                  </div>
+                </div>
+                <div className="row gap-2 mt-2">
+                  <ButtonCustom 
+                    variant="ghost" 
+                    icon="check"
+                    onClick={async () => {
+                      setSaving(true);
+                      const { error } = await supabase.from('works').update({ status: 'aprobado' }).eq('id', work.id);
+                      setSaving(false);
+                      if (!error) { setWork({ ...work, status: 'aprobado' }); setToast('Marcado como aprobado'); setTimeout(() => setToast(''), 2000); }
+                    }}
+                    disabled={saving}
+                  >
+                    Aprobar manualmente
+                  </ButtonCustom>
                 </div>
               </div>
             )}
@@ -315,7 +332,7 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
                 <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
                   ✅ El cliente ha aprobado esta pieza. Ya puedes publicarla.
                 </div>
-                <div className="row">
+                <div className="row gap-2 mt-2">
                   <ButtonCustom 
                     variant="accent" 
                     icon="check"
@@ -323,6 +340,19 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
                     disabled={saving}
                   >
                     {saving ? 'Publicando...' : 'Publicar pieza'}
+                  </ButtonCustom>
+                  <ButtonCustom 
+                    variant="ghost" 
+                    icon="undo"
+                    onClick={async () => {
+                      setSaving(true);
+                      const { error } = await supabase.from('works').update({ status: 'borrador' }).eq('id', work.id);
+                      setSaving(false);
+                      if (!error) { setWork({ ...work, status: 'borrador' }); setToast('Devuelto a borrador'); setTimeout(() => setToast(''), 2000); }
+                    }}
+                    disabled={saving}
+                  >
+                    Devolver a borrador
                   </ButtonCustom>
                 </div>
               </div>
@@ -342,6 +372,21 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
                     {work.publishedAt && ` el ${new Date(work.publishedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}`}
                   </div>
                 )}
+                <div className="row gap-2 mt-3" style={{ marginLeft: 22 }}>
+                  <ButtonCustom 
+                    variant="ghost" 
+                    icon="undo"
+                    onClick={async () => {
+                      setSaving(true);
+                      const { error } = await supabase.from('works').update({ status: 'aprobado', published_by: null, published_at: null }).eq('id', work.id);
+                      setSaving(false);
+                      if (!error) { setWork({ ...work, status: 'aprobado', publishedBy: null, publishedAt: null }); setToast('Deshecha publicación'); setTimeout(() => setToast(''), 2000); }
+                    }}
+                    disabled={saving}
+                  >
+                    Deshacer publicación
+                  </ButtonCustom>
+                </div>
               </div>
             )}
           </div>

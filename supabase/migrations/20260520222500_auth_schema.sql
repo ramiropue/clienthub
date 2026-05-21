@@ -45,7 +45,7 @@ BEGIN
 
     IF v_client_id IS NOT NULL THEN
         v_role := 'client';
-    ELSIF LOWER(NEW.email) = 'ramiro@clienthub.com' THEN
+    ELSIF LOWER(NEW.email) = 'ramirotecnologia@gmail.com' THEN
         v_role := 'admin';
     ELSE
         v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'client');

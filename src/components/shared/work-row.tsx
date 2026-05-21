@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 
 interface WorkRowProps {
   work: any;
+  workType?: any;
   onClick?: () => void;
   onStatusChange?: (newStatus: string) => void;
   showStatus?: boolean;
@@ -12,8 +13,8 @@ interface WorkRowProps {
   compact?: boolean;
 }
 
-export function WorkRow({ work, onClick, onStatusChange, showStatus = true, showThumb = true, compact }: WorkRowProps) {
-  const type = getType(work.type);
+export function WorkRow({ work, workType, onClick, onStatusChange, showStatus = true, showThumb = true, compact }: WorkRowProps) {
+  const type = workType || getType(work.type);
   return (
     <div className="work-row fade-in" onClick={onClick}>
       {showThumb && (
