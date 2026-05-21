@@ -9,9 +9,9 @@ import { WorkRow } from '@/components/shared/work-row';
 import { MiniCalendar } from '@/components/shared/mini-calendar';
 
 export default function ClienteCalendarPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const clientId = unwrappedParams.id;
+  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,29 @@ export default function ClienteCalendarPage({ params }: { params: Promise<{ id: 
     });
   }, [clientId]);
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div className="client-section main-content" style={{ padding: '24px 18px' }}>
+        <div className="shimmer-container" style={{ gap: 20 }}>
+          {/* Hero Shimmer */}
+          <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+          {/* Two column layout */}
+          <div className="row gap-6" style={{ alignItems: 'flex-start', flexWrap: 'wrap', width: '100%' }}>
+            {/* Left Calendar box */}
+            <div className="shimmer-bar" style={{ height: 320, flex: '1 1 300px', minWidth: 280 }} />
+            {/* Right List box */}
+            <div className="shimmer-container" style={{ flex: '2 1 400px', gap: 12 }}>
+              <div className="shimmer-bar" style={{ height: 24, width: 150 }} />
+              <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+              <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+              <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   const monthWorks = worksFor(works, client.id, selectedMonth.year, selectedMonth.month);

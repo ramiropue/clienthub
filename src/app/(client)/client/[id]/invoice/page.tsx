@@ -36,7 +36,24 @@ export default function ClienteInvoicePage({
     });
   }, [clientId]);
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div className="client-section main-content" style={{ padding: '24px 18px' }}>
+        <div className="shimmer-container" style={{ gap: 20 }}>
+          {/* Hero */}
+          <div className="shimmer-bar" style={{ height: 100, width: '100%' }} />
+          {/* Invoice Paper */}
+          <div className="shimmer-bar" style={{ height: 420, width: '100%', borderRadius: 14 }} />
+          {/* Actions */}
+          <div className="row gap-4" style={{ flexWrap: 'nowrap', width: '100%' }}>
+            <div className="shimmer-bar" style={{ height: 42, flex: 1 }} />
+            <div className="shimmer-bar" style={{ height: 42, flex: 1 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   // determine month

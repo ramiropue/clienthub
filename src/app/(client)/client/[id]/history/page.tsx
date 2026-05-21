@@ -7,9 +7,9 @@ import { getClient, getWorksForClient, Client, Work } from '@/lib/data';
 import { Icon } from '@/components/ui/icon';
 
 export default function ClienteHistoryPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const clientId = unwrappedParams.id;
+  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,25 @@ export default function ClienteHistoryPage({ params }: { params: Promise<{ id: s
     });
   }, [clientId]);
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div className="client-section main-content" style={{ padding: '24px 18px' }}>
+        <div className="shimmer-container" style={{ gap: 20 }}>
+          {/* Hero */}
+          <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+          {/* Card */}
+          <div className="shimmer-bar" style={{ height: 140, width: '100%' }} />
+          {/* List items */}
+          <div className="shimmer-container" style={{ gap: 12 }}>
+            <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   const d = new Date();

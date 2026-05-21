@@ -9,9 +9,9 @@ import { WorkRow } from '@/components/shared/work-row';
 import { supabase } from '@/lib/supabase';
 
 export default function ClienteHomePage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const clientId = unwrappedParams.id;
+  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [workTypes, setWorkTypes] = useState<any[]>([]);
@@ -49,8 +49,25 @@ export default function ClienteHomePage({ params }: { params: Promise<{ id: stri
     });
   }, [clientId]);
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
-  if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
+  if (loading) {
+    return (
+      <div className="client-section main-content" style={{ padding: '24px 18px' }}>
+        <div className="shimmer-container" style={{ gap: 20 }}>
+          <div className="shimmer-bar" style={{ height: 160, width: '100%' }} />
+          <div className="row gap-4" style={{ flexWrap: 'nowrap', width: '100%' }}>
+            <div className="shimmer-bar" style={{ height: 42, flex: 1 }} />
+            <div className="shimmer-bar" style={{ height: 42, flex: 1 }} />
+          </div>
+          <div className="shimmer-container" style={{ gap: 12 }}>
+            <div className="shimmer-bar" style={{ height: 64, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 64, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 64, width: '100%' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!client) return <div style={{ padding: 40, opacity: 0.8, color: 'var(--muted)', textAlign: 'center' }}>Cliente no encontrado</div>;
 
   const month = selectedMonth;
   const monthWorks = worksFor(works, client.id, month.year, month.month).sort((a, b) => b.date.getTime() - a.date.getTime());

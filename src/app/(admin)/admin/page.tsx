@@ -142,7 +142,35 @@ export default function AdminDashboardPage() {
     router.push(`/admin/client/${clientId}`);
   };
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div className="main-content" style={{ padding: '24px 20px' }}>
+        <div className="shimmer-container" style={{ gap: 24 }}>
+          {/* Header */}
+          <div className="col gap-2">
+            <div className="shimmer-bar" style={{ height: 16, width: 140 }} />
+            <div className="shimmer-bar" style={{ height: 38, width: 280 }} />
+          </div>
+          {/* KPIs Grid */}
+          <div className="kpi-grid" style={{ pointerEvents: 'none' }}>
+            <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 120, width: '100%' }} />
+          </div>
+          {/* Table */}
+          <div className="shimmer-container" style={{ gap: 12 }}>
+            <div className="shimmer-bar" style={{ height: 24, width: 180, marginBottom: 8 }} />
+            <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+            <div className="shimmer-bar" style={{ height: 60, width: '100%' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   const monthLabel = `${MONTH_NAMES[month.month]} ${month.year}`;
 

@@ -65,9 +65,9 @@ const MONTH_NAMES = [
 ];
 
 export default function AdminClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const clientId = unwrappedParams.id;
+  const router = useRouter();
 
   const [client, setClient] = useState<Client | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
@@ -299,7 +299,47 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
     window.open(waUrl, '_blank');
   };
 
-  if (loading) return <div style={{ padding: 40, opacity: 0.5 }}>Cargando datos...</div>;
+  if (loading) {
+    return (
+      <div className="main-content" style={{ padding: '24px 20px' }}>
+        <div className="shimmer-container" style={{ gap: 24 }}>
+          {/* Header */}
+          <div className="row between" style={{ flexWrap: 'wrap', gap: 16 }}>
+            <div className="col gap-2">
+              <div className="shimmer-bar" style={{ height: 14, width: 120 }} />
+              <div className="row gap-3" style={{ alignItems: 'center' }}>
+                <div className="shimmer-bar" style={{ height: 48, width: 48, borderRadius: '50%' }} />
+                <div className="col gap-2">
+                  <div className="shimmer-bar" style={{ height: 22, width: 200 }} />
+                  <div className="shimmer-bar" style={{ height: 14, width: 300 }} />
+                </div>
+              </div>
+            </div>
+            <div className="shimmer-bar" style={{ height: 42, width: 150 }} />
+          </div>
+          
+          {/* Tabs */}
+          <div className="row gap-4" style={{ borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
+            <div className="shimmer-bar" style={{ height: 32, width: 100 }} />
+            <div className="shimmer-bar" style={{ height: 32, width: 100 }} />
+            <div className="shimmer-bar" style={{ height: 32, width: 100 }} />
+          </div>
+
+          {/* Columns */}
+          <div className="detail-grid" style={{ pointerEvents: 'none' }}>
+            <div className="shimmer-container" style={{ gap: 16 }}>
+              <div className="shimmer-bar" style={{ height: 40, width: '100%', borderRadius: 999 }} />
+              <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+              <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+              <div className="shimmer-bar" style={{ height: 80, width: '100%' }} />
+            </div>
+            <div className="shimmer-bar" style={{ height: 340, width: '100%', borderRadius: 14 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!client) return <div style={{ padding: 40 }}>Cliente no encontrado</div>;
 
   return (

@@ -11,9 +11,9 @@ import { Work, Client, getClient, getClients, createNotification } from '@/lib/d
 import { EditWorkModal } from '@/components/admin/edit-work-modal';
 
 export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const workId = unwrappedParams.id;
+  const router = useRouter();
 
   const [work, setWork] = useState<Work | null>(null);
   const [client, setClient] = useState<Client | null>(null);
@@ -255,7 +255,25 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
     setSendingComment(false);
   };
 
-  if (loading) return <div style={{ padding: 40 }}>Cargando trabajo...</div>;
+  if (loading) {
+    return (
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px' }}>
+        <div className="shimmer-container" style={{ gap: 24 }}>
+          {/* Back button and actions */}
+          <div className="row between">
+            <div className="shimmer-bar" style={{ height: 18, width: 140 }} />
+            <div className="row gap-2">
+              <div className="shimmer-bar" style={{ height: 36, width: 80 }} />
+              <div className="shimmer-bar" style={{ height: 36, width: 80 }} />
+            </div>
+          </div>
+          {/* Large Card Shimmer */}
+          <div className="shimmer-bar" style={{ height: 480, width: '100%', borderRadius: 14 }} />
+        </div>
+      </div>
+    );
+  }
+
   if (!work) return <div style={{ padding: 40 }}>Trabajo no encontrado</div>;
 
   const typeDef = getType(work.type);

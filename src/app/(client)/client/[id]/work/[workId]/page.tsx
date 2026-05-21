@@ -29,9 +29,9 @@ export default function ClienteWorkDetailPage({
 }: {
   params: Promise<{ id: string; workId: string }>;
 }) {
-  const router = useRouter();
   const unwrappedParams = use(params);
   const { id: clientId, workId } = unwrappedParams;
+  const router = useRouter();
 
   const [work, setWork] = useState<Work | null>(null);
   const [client, setClient] = useState<Client | null>(null);
@@ -272,15 +272,40 @@ export default function ClienteWorkDetailPage({
           zIndex: 100,
           background: 'var(--paper)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: 0.7
+          flexDirection: 'column',
+          height: '100vh',
+          overflowY: 'auto'
         }}
       >
-        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Cargando detalles de la pieza...</span>
+        {/* Top Header Shimmer */}
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', background: 'var(--paper)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="shimmer-bar" style={{ height: 24, width: 24, borderRadius: '50%' }} />
+          <div className="shimmer-bar" style={{ height: 18, width: 120 }} />
+          <div style={{ flex: 1 }} />
+          <div className="shimmer-bar" style={{ height: 24, width: 70 }} />
+        </div>
+        
+        {/* Main Content Body Shimmer */}
+        <div style={{ padding: '18px 18px 60px', maxWidth: 640, margin: '0 auto', width: '100%' }} className="shimmer-container">
+          {/* Preview Area */}
+          <div className="shimmer-bar" style={{ width: '100%', aspectRatio: '4/5', borderRadius: 14 }} />
+          {/* Title / Meta */}
+          <div className="shimmer-bar" style={{ height: 28, width: '70%', marginTop: 16 }} />
+          <div className="shimmer-bar" style={{ height: 16, width: '40%', marginTop: 8 }} />
+          
+          {/* Notes */}
+          <div className="shimmer-bar" style={{ height: 100, width: '100%', borderRadius: 12, marginTop: 16 }} />
+          
+          {/* Action buttons */}
+          <div className="row gap-4" style={{ flexWrap: 'nowrap', width: '100%', marginTop: 24 }}>
+            <div className="shimmer-bar" style={{ height: 42, flex: 1, borderRadius: 999 }} />
+            <div className="shimmer-bar" style={{ height: 42, flex: 1, borderRadius: 999 }} />
+          </div>
+        </div>
       </div>
     );
   }
+
 
   if (!work || !client) {
     return (
