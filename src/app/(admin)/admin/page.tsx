@@ -394,6 +394,8 @@ export default function AdminDashboardPage() {
               {filteredWorksThisMonth.slice().sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 4).map(w => {
                 const c = clients.find(cl => cl.id === w.clientId);
                 if (!c) return null;
+                const typeDef = workTypes.find(t => t.id === w.type) || getType(w.type);
+                const isContenido = typeDef?.group === 'contenido';
                 return (
                   <div key={w.id} className="row gap-3">
                     <AvatarCustom name={c.name} color={c.color} initials={c.initials} size="sm" />
@@ -401,15 +403,17 @@ export default function AdminDashboardPage() {
                       <div style={{ fontSize: 13, lineHeight: 1.3 }}>{w.title}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>{c.name} · {w.date.getDate()} {MONTH_NAMES[w.date.getMonth()].toLowerCase()}</div>
                     </div>
-                    <div 
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        const next = w.status === 'borrador' ? 'aprobado' : (w.status === 'aprobado' ? 'publicado' : 'borrador');
-                        updateWorkStatus(w.id, next);
-                      }}
-                    >
-                      <StatusBadge status={w.status} />
-                    </div>
+                    {isContenido && (
+                      <div 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          const next = w.status === 'borrador' ? 'aprobado' : (w.status === 'aprobado' ? 'publicado' : 'borrador');
+                          updateWorkStatus(w.id, next);
+                        }}
+                      >
+                        <StatusBadge status={w.status} />
+                      </div>
+                    )}
                   </div>
                 );
               })}

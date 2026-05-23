@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import { CURRENT_MONTH, worksFor, totalFor, MONTH_NAMES, getType } from '@/lib/mock-data';
 import { getClient, getWorksForClient, Client, Work, getSettings, Settings, getWorkTypes, WorkType } from '@/lib/data';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -20,6 +20,8 @@ export default function ClienteInvoicePage({
   const [settings, setSettings] = useState<Settings | null>(null);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -82,8 +84,43 @@ export default function ClienteInvoicePage({
 
   const eurFull = (n: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n);
 
+  const handleDownloadPDF = async () => {
+    if (!invoiceRef.current) return;
+    setDownloading(true);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const opt = {
+        margin: 0,
+        filename: `Factura_${client?.name?.replace(/ /g, '_')}_${MONTH_NAMES[my.month]}_${my.year}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // Temporarily hide the download section
+      const actionsEl = document.getElementById('client-invoice-actions');
+      if (actionsEl) actionsEl.style.display = 'none';
+      
+      // Apply white background for PDF
+      const originalBg = invoiceRef.current.style.background;
+      invoiceRef.current.style.background = '#ffffff';
+      
+      await html2pdf().set(opt).from(invoiceRef.current).save();
+      
+      // Restore
+      invoiceRef.current.style.background = originalBg;
+      if (actionsEl) actionsEl.style.display = 'flex';
+      
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div className="invoice-page">
+    <div className="invoice-page" ref={invoiceRef} style={{ background: 'var(--paper)', minHeight: '100vh', paddingBottom: 40 }}>
       <div className="client-hero" style={{ paddingBottom: 18 }}>
         <div className="month">
           <span>Factura · {monthLabel}</span>
@@ -149,32 +186,26 @@ export default function ClienteInvoicePage({
             <div />
             <div className="li-amt mono">{eurFull(total)}</div>
           </div>
-          <div className="li">
-            <div className="text-muted" style={{ fontSize: 12 }}>IVA (21%)</div>
-            <div />
-            <div className="li-amt mono">{eurFull(total * 0.21)}</div>
-          </div>
-          <div className="li">
-            <div className="text-muted" style={{ fontSize: 12 }}>IRPF (-15%)</div>
-            <div />
-            <div className="li-amt mono">−{eurFull(total * 0.15)}</div>
-          </div>
         </div>
 
         <div className="grand">
-          <div className="lbl">Total a pagar</div>
-          <div className="amt">{eurFull(total * 1.06)}</div>
+          <div className="lbl">Total</div>
+          <div className="amt">{eurFull(total)}</div>
         </div>
 
-        <div className="text-muted mt-4" style={{ fontSize: 11 }}>
-          Transferencia a ES12 0182 0000 0000 0000 0000 · vencimiento a 15 días.
-        </div>
       </div>
 
-      <div className="client-section" style={{ paddingTop: 6 }}>
+      <div id="client-invoice-actions" className="client-section" style={{ paddingTop: 6 }}>
         <div className="row gap-2">
-          <ButtonCustom variant="ghost" icon="download" style={{ flex: 1 }}>Descargar PDF</ButtonCustom>
-          <ButtonCustom variant="primary" icon="external" style={{ flex: 1 }}>Pagar</ButtonCustom>
+          <ButtonCustom 
+            variant="ghost" 
+            icon="download" 
+            style={{ flex: 1 }} 
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+          >
+            {downloading ? 'Generando PDF...' : 'Descargar PDF'}
+          </ButtonCustom>
         </div>
       </div>
     </div>

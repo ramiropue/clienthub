@@ -24,6 +24,10 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
   const [date, setDate]         = useState(work ? new Date(work.date).toISOString().split('T')[0] : '');
   const [status, setStatus]     = useState(work?.status || 'borrador');
   const [notes, setNotes]       = useState(work?.notes || '');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [meetingLocation, setMeetingLocation] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [meetingObjectives, setMeetingObjectives] = useState('');
   const [price, setPrice]       = useState(work?.price || 65);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
@@ -40,11 +44,54 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
       setClientId(work.clientId);
       setTypeId(work.type);
       setTitle(work.title);
-      setNotes(work.notes || '');
       setStatus(work.status);
-      setDate(new Date(work.date).toISOString().split('T')[0]);
       setPrice(work.price);
       setError('');
+      
+      const workDateObj = new Date(work.date);
+      const offset = workDateObj.getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(workDateObj.getTime() - offset)).toISOString().split('T')[0];
+      setDate(localISOTime);
+
+      let initialNotes = work.notes || '';
+      let mTime = '';
+      let mLocation = '';
+      let mLink = '';
+      let mObjectives = '';
+
+      if (work.type === 'reunion') {
+        const timeMatch = initialNotes.match(/\*\*Hora:\*\* (.*)/);
+        if (timeMatch) {
+          mTime = timeMatch[1].trim();
+        } else {
+          const hours = workDateObj.getHours();
+          const minutes = workDateObj.getMinutes();
+          if (hours !== 0 || minutes !== 0) {
+            mTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          }
+        }
+
+        const locMatch = initialNotes.match(/\*\*Ubicación:\*\* (.*)/);
+        if (locMatch) mLocation = locMatch[1].trim();
+
+        const linkMatch = initialNotes.match(/\*\*Enlace:\*\* (.*)/);
+        if (linkMatch) mLink = linkMatch[1].trim();
+
+        const objMatch = initialNotes.match(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)/);
+        if (objMatch) mObjectives = objMatch[1].trim();
+
+        initialNotes = initialNotes.replace(/\*\*Hora:\*\* .*\n?/g, '');
+        initialNotes = initialNotes.replace(/\*\*Ubicación:\*\* .*\n?/g, '');
+        initialNotes = initialNotes.replace(/\*\*Enlace:\*\* .*\n?/g, '');
+        initialNotes = initialNotes.replace(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)\n?/g, '');
+        initialNotes = initialNotes.replace(/^---\n/, '').trim();
+      }
+
+      setNotes(initialNotes);
+      setMeetingTime(mTime);
+      setMeetingLocation(mLocation);
+      setMeetingLink(mLink);
+      setMeetingObjectives(mObjectives);
     }
   }, [open, work]);
 
@@ -65,14 +112,34 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
     setSaving(true);
     setError('');
 
+    let finalNotes = notes.trim() || null;
+    let finalDate = date;
+
+    if (typeId === 'reunion') {
+      if (meetingTime.trim() && date) {
+        const [y, m, d] = date.split('-').map(Number);
+        const [H, M] = meetingTime.split(':').map(Number);
+        finalDate = new Date(y, m - 1, d, H, M).toISOString();
+      }
+      const meetingDetails = [];
+      if (meetingTime.trim()) meetingDetails.push(`**Hora:** ${meetingTime.trim()}`);
+      if (meetingLocation.trim()) meetingDetails.push(`**Ubicación:** ${meetingLocation.trim()}`);
+      if (meetingLink.trim()) meetingDetails.push(`**Enlace:** ${meetingLink.trim()}`);
+      if (meetingObjectives.trim()) meetingDetails.push(`**Objetivos:**\n${meetingObjectives.trim()}`);
+      
+      if (meetingDetails.length > 0) {
+        finalNotes = meetingDetails.join('\n\n') + (finalNotes ? `\n\n---\n${finalNotes}` : '');
+      }
+    }
+
     const { error: err } = await supabase.from('works').update({
       client_id: clientId,
       type: typeId,
       title: workTitle,
-      date,
+      date: finalDate,
       status: finalStatus,
       price,
-      notes: notes.trim() || null,
+      notes: finalNotes,
     }).eq('id', work.id);
 
     setSaving(false);
@@ -168,6 +235,53 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
                 onChange={e => setTitle(e.target.value)}
               />
             </div>
+
+            {/* Campos extra si es reunión */}
+            {typeId === 'reunion' && (
+              <div className="col gap-4">
+                <div className="row gap-4">
+                  <div className="field flex-1">
+                    <label>Hora de inicio</label>
+                    <input
+                      type="time"
+                      className="input"
+                      value={meetingTime}
+                      onChange={e => setMeetingTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="field flex-1">
+                    <label>Ubicación</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Dirección, sala..."
+                      value={meetingLocation}
+                      onChange={e => setMeetingLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="field flex-1">
+                    <label>Enlace web</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Zoom, Meet..."
+                      value={meetingLink}
+                      onChange={e => setMeetingLink(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="field">
+                  <label>Objetivos de la reunión</label>
+                  <textarea
+                    className="textarea"
+                    placeholder="Escribe los puntos a tratar..."
+                    value={meetingObjectives}
+                    onChange={e => setMeetingObjectives(e.target.value)}
+                    style={{ minHeight: 80 }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Fecha y precio */}
             <div className="row gap-3">

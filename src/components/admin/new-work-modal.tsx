@@ -27,6 +27,12 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   const [date, setDate]         = useState(preselectDate || today);
   const [status, setStatus]     = useState<'borrador' | 'aprobado' | 'publicado'>('borrador');
   const [notes, setNotes]       = useState('');
+  const [scriptText, setScriptText] = useState('');
+  const [scriptLink, setScriptLink] = useState('');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [meetingLocation, setMeetingLocation] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [meetingObjectives, setMeetingObjectives] = useState('');
   const [price, setPrice]       = useState(65);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [linkInputOpen, setLinkInputOpen] = useState(false);
@@ -59,6 +65,12 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
     if (open) {
       setTitle('');
       setNotes('');
+      setScriptText('');
+      setScriptLink('');
+      setMeetingTime('');
+      setMeetingLocation('');
+      setMeetingLink('');
+      setMeetingObjectives('');
       setStatus('borrador');
       setDate(preselectDate || today);
       setError('');
@@ -134,16 +146,40 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
     setSaving(true);
     setError('');
 
+    let finalNotes = notes.trim() || null;
+    let finalDate = date;
+
+    if (typeId === 'reunion') {
+      if (meetingTime.trim() && date) {
+        const [y, m, d] = date.split('-').map(Number);
+        const [H, M] = meetingTime.split(':').map(Number);
+        finalDate = new Date(y, m - 1, d, H, M).toISOString();
+      }
+      const meetingDetails = [];
+      if (meetingTime.trim()) meetingDetails.push(`**Hora:** ${meetingTime.trim()}`);
+      if (meetingLocation.trim()) meetingDetails.push(`**Ubicación:** ${meetingLocation.trim()}`);
+      if (meetingLink.trim()) meetingDetails.push(`**Enlace:** ${meetingLink.trim()}`);
+      if (meetingObjectives.trim()) meetingDetails.push(`**Objetivos:**\n${meetingObjectives.trim()}`);
+      
+      if (meetingDetails.length > 0) {
+        finalNotes = meetingDetails.join('\n\n') + (finalNotes ? `\n\n---\n${finalNotes}` : '');
+      }
+    }
+
     const { error: err } = await supabase.from('works').insert({
       id: newWorkId,
       client_id: clientId,
       type: typeId,
       title: workTitle,
-      date,
+      date: finalDate,
       status: finalStatus,
       price,
-      notes: notes.trim() || null,
-      preview_url: attachments.length > 0 ? JSON.stringify(attachments) : null,
+      notes: finalNotes,
+      preview_url: attachments.length > 0 || scriptText.trim() || scriptLink.trim() ? JSON.stringify([
+        ...(scriptText.trim() ? [{ id: 'script-text-' + Date.now(), name: 'Guion / Propuesta (Texto)', type: 'text', content: scriptText.trim() }] : []),
+        ...(scriptLink.trim() ? [{ id: 'script-link-' + Date.now(), name: 'Guion / Propuesta (Documento)', type: 'link', url: scriptLink.trim().startsWith('http') ? scriptLink.trim() : 'https://' + scriptLink.trim() }] : []),
+        ...attachments
+      ]) : null,
     });
 
     setSaving(false);
@@ -402,6 +438,73 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
                 <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4 }}>{uploadError}</p>
               )}
             </div>
+
+            {/* Campos extra si es reunión */}
+            {typeId === 'reunion' && (
+              <div className="col gap-4">
+                <div className="row gap-4">
+                  <div className="field flex-1">
+                    <label>Hora de inicio</label>
+                    <input
+                      type="time"
+                      className="input"
+                      value={meetingTime}
+                      onChange={e => setMeetingTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="field flex-1">
+                    <label>Ubicación</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Dirección, sala..."
+                      value={meetingLocation}
+                      onChange={e => setMeetingLocation(e.target.value)}
+                    />
+                  </div>
+                  <div className="field flex-1">
+                    <label>Enlace web</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Zoom, Meet..."
+                      value={meetingLink}
+                      onChange={e => setMeetingLink(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="field">
+                  <label>Objetivos de la reunión</label>
+                  <textarea
+                    className="textarea"
+                    placeholder="Escribe los puntos a tratar..."
+                    value={meetingObjectives}
+                    onChange={e => setMeetingObjectives(e.target.value)}
+                    style={{ minHeight: 80 }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Guion o Propuesta (Solo si no es reunión) */}
+            {typeId !== 'reunion' && (
+              <div className="field">
+                <label>Guion o Propuesta de trabajo</label>
+                <textarea
+                  className="textarea"
+                  placeholder="Escribe o pega aquí el guion o propuesta detallada..."
+                  value={scriptText}
+                  onChange={e => setScriptText(e.target.value)}
+                  style={{ minHeight: 120, marginBottom: 8 }}
+                />
+                <input
+                  className="input"
+                  placeholder="O pega aquí un enlace al documento (Google Drive, Dropbox...)"
+                  value={scriptLink}
+                  onChange={e => setScriptLink(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* Notas */}
             <div className="field">

@@ -4,19 +4,25 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getClient, Client } from '@/lib/data';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { NotificationsBell } from '@/components/shared/notifications-bell';
 import { createClient } from '@/lib/supabase/client';
+import { updateClientAction } from '@/app/actions/clients';
 
 export function ClienteTopbar({ clientId }: { clientId: string }) {
   const [client, setClient] = useState<Client | null>(null);
+  const [localLogo, setLocalLogo] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    getClient(clientId).then(setClient);
+    getClient(clientId).then((c) => {
+      setClient(c);
+      if (c?.logoUrl) setLocalLogo(c.logoUrl);
+    });
   }, [clientId]);
 
   const handleLogout = async () => {
@@ -33,7 +39,36 @@ export function ClienteTopbar({ clientId }: { clientId: string }) {
       </Link>
       <div className="row gap-3" style={{ alignItems: 'center' }}>
         <NotificationsBell recipient="client" clientId={clientId} />
-        <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" />
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()} title="Cambiar foto de perfil">
+          <AvatarCustom name={client.name} color={client.color} initials={client.initials} size="sm" logoUrl={localLogo} />
+          <input 
+            type="file" 
+            accept="image/*" 
+            style={{ display: 'none' }} 
+            ref={fileInputRef}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // Show preview immediately
+                const reader = new FileReader();
+                reader.onload = (evt) => setLocalLogo(evt.target?.result as string);
+                reader.readAsDataURL(file);
+                
+                // Upload to Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `client-${clientId}-${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                  .from('client-logos')
+                  .upload(fileName, file);
+                  
+                if (!uploadError) {
+                  const { data } = supabase.storage.from('client-logos').getPublicUrl(fileName);
+                  await updateClientAction(clientId, { logo_url: data.publicUrl });
+                }
+              }
+            }}
+          />
+        </div>
         <button 
           onClick={handleLogout}
           title="Cerrar sesión"

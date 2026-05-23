@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClient, getWorksForClient, getWorkTypes, Client, Work, WorkType } from '@/lib/data';
+import { getClient, getWorksForClient, getWorkTypes, getSettings, Client, Work, WorkType, Settings } from '@/lib/data';
 import { AvatarCustom } from '@/components/ui/avatar-custom';
 import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -76,12 +76,12 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalEditOpen, setModalEditOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [toast, setToast] = useState('');
 
   // UI States
   const [currentDate] = useState(new Date());
   const [filterStatus, setFilterStatus] = useState('Todo');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [preselectDateForNewWork, setPreselectDateForNewWork] = useState<string | null>(null);
@@ -93,6 +93,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     loadWorks();
+    getSettings().then(setSettings);
   }, [clientId]);
 
   async function loadWorks() {
@@ -363,43 +364,35 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
               <NotificationsBell recipient="admin" clientId={clientId} align="right" />
             </div>
             
-            {/* Three dots dropdown */}
-            <div style={{ position: 'relative' }}>
-              <button className="btn-icon" onClick={() => setMenuOpen(!menuOpen)}>
-                <Icon name="more" size={16} />
-              </button>
-              {menuOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 8,
-                  background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 12,
-                  padding: '6px', zIndex: 100, width: 160, boxShadow: 'var(--shadow-lg)'
-                }}>
-                  <button 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--ink)' }}
-                    onClick={() => { setMenuOpen(false); setModalEditOpen(true); }}
-                  >
-                    <Icon name="pencil" size={14} /> Editar cliente
-                  </button>
-                  <button 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--warn)', marginTop: 2 }}
-                    onClick={async () => {
-                      if (confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
-                        setMenuOpen(false);
-                        const { error } = await supabase.from('clients').update({ is_deleted: true }).eq('id', clientId);
-                        if (error) alert("Error al eliminar cliente");
-                        else router.push('/admin/clients');
-                      }
-                    }}
-                  >
-                    <Icon name="trash" size={14} /> Eliminar
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Action buttons directly exposed */}
+            <div className="row gap-2" style={{ alignItems: 'center' }}>
+              <ButtonCustom 
+                variant="ghost" 
+                icon="trash" 
+                onClick={async () => {
+                  if (confirm("¿Estás seguro de que deseas eliminar este cliente?")) {
+                    const { error } = await supabase.from('clients').update({ is_deleted: true }).eq('id', clientId);
+                    if (error) alert("Error al eliminar cliente");
+                    else router.push('/admin/clients');
+                  }
+                }}
+                style={{ color: 'var(--warn)' }}
+              >
+                Eliminar
+              </ButtonCustom>
 
-            <ButtonCustom variant="accent" icon="plus" onClick={() => setModalOpen(true)}>Añadir trabajo</ButtonCustom>
+              <ButtonCustom 
+                variant="ghost" 
+                icon="pencil" 
+                onClick={() => setModalEditOpen(true)}
+              >
+                Editar
+              </ButtonCustom>
+
+              <ButtonCustom variant="accent" icon="plus" onClick={() => setModalOpen(true)}>
+                Añadir trabajo
+              </ButtonCustom>
+            </div>
           </div>
         </div>
 
@@ -659,79 +652,75 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
       {/* Hidden Invoice Template for PDF generation */}
       <div style={{ display: 'none' }}>
-        <div ref={invoiceRef} style={{ width: '800px', padding: '60px', background: '#fff', color: '#111', fontFamily: 'sans-serif' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '60px', alignItems: 'flex-start' }}>
-            <div>
-              <strong style={{ fontSize: '18px', display: 'block', marginBottom: '4px' }}>Antía Vázquez</strong>
-              <div style={{ color: '#555', fontSize: '14px', lineHeight: '1.6' }}>
-                Social media & estrategia<br />
-                hola@antiav.studio
-              </div>
+        <div ref={invoiceRef} className="invoice-paper" style={{ padding: '60px' }}>
+          <div className="head">
+            <div className="from">
+              <strong>{settings?.companyName || settings?.profileName || 'Ramiro'}</strong><br/>
+              {settings?.profileRole || 'Social media & estrategia'}<br />
+              {settings?.companyId && <>{settings.companyId}<br /></>}
+              {settings?.companyAddress && <span style={{ fontSize: 11, color: 'var(--muted)', display: 'inline-block', maxWidth: 200, lineHeight: 1.3 }}>{settings.companyAddress}</span>}
             </div>
-            
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Facturado a</div>
-              <strong style={{ fontSize: '16px', display: 'block', marginBottom: '4px' }}>{client.name}</strong>
-              <div style={{ color: '#555', fontSize: '14px', lineHeight: '1.6' }}>
-                {client.handle}<br />
-                {client.email}<br/>
-                {client.phone && <span>{client.phone}</span>}
-              </div>
+              <div className="num">N.º {currentYear}-{(currentMonthNum+1).toString().padStart(2, '0')}-{client.id.slice(0,3).toUpperCase()}</div>
+              <div className="text-muted mt-2" style={{ fontSize: 11 }}>Emisión 1 {MONTH_NAMES[(currentMonthNum + 1) % 12].slice(0,3).toLowerCase()} {currentMonthNum === 11 ? currentYear + 1 : currentYear}</div>
+              <div className="badge badge-accent mt-2"><span className="dot" /> Pendiente</div>
             </div>
           </div>
 
-          <div style={{ marginBottom: '40px' }}>
-            <h1 style={{ fontSize: '32px', margin: '0 0 8px 0', fontWeight: 600 }}>Recibo</h1>
-            <div style={{ fontSize: '16px', color: '#555' }}>Periodo: {MONTH_NAMES[currentMonthNum]} {currentYear}</div>
-            <div style={{ fontSize: '14px', color: '#777', marginTop: '4px' }}>N.º 2026-05-{client.id.slice(0, 4)}</div>
+          <hr />
+
+          <div style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Para</div>
+          <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+            <strong>{client.name}</strong><br />
+            {client.handle}<br />
+            {client.email}
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
-            <thead>
-              <tr>
-                <th style={{ padding: '12px 0', borderBottom: '2px solid #222', textAlign: 'left', fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px' }}>Concepto</th>
-                <th style={{ padding: '12px 0', borderBottom: '2px solid #222', textAlign: 'right', fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px', width: '80px' }}>Cant.</th>
-                <th style={{ padding: '12px 0', borderBottom: '2px solid #222', textAlign: 'right', fontSize: '12px', color: '#777', textTransform: 'uppercase', letterSpacing: '1px', width: '120px' }}>Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Retainer Line */}
-              <tr>
-                <td style={{ padding: '20px 0', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 500, fontSize: '15px' }}>{client.retainerLabel || 'Cuota mensual'}</div>
-                  <div style={{ color: '#777', fontSize: '13px', marginTop: '4px' }}>Cuota fija acordada</div>
-                </td>
-                <td style={{ padding: '20px 0', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '15px' }}>1</td>
-                <td style={{ padding: '20px 0', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '15px', fontWeight: 500 }}>{eur(totals.retainer)}</td>
-              </tr>
-              
-              {/* Extra works grouped by title or just individually? The design groups by type, but we can list them individually or as "Trabajos extra" */}
-              {monthWorksAll.length > 0 && (
-                <tr>
-                  <td style={{ padding: '20px 0', borderBottom: '1px solid #eee' }}>
-                    <div style={{ fontWeight: 500, fontSize: '15px' }}>Trabajos Extra / Piezas finalizadas</div>
-                    <div style={{ color: '#777', fontSize: '13px', marginTop: '4px' }}>
-                      {monthWorksAll.slice(0, 5).map(w => w.title).join(' · ')}{monthWorksAll.length > 5 ? '...' : ''}
-                    </div>
-                  </td>
-                  <td style={{ padding: '20px 0', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '15px' }}>{totals.count}</td>
-                  <td style={{ padding: '20px 0', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '15px', fontWeight: 500 }}>{eur(totals.variable)}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <hr />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '40px' }}>
-            <div style={{ width: '300px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid #222', alignItems: 'baseline' }}>
-                <span style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: '#555', fontWeight: 600 }}>Total a pagar</span>
-                <span style={{ fontSize: '32px', fontWeight: 600 }}>{eur(totals.total)}</span>
-              </div>
-              <div style={{ color: '#777', fontSize: '12px', textAlign: 'right', marginTop: '8px' }}>
-                Pago en metálico a la entrega / fin de mes.
-              </div>
+          <div className="li" style={{ borderBottom: 0, paddingBottom: 4, fontSize: 11, color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <div>Concepto</div>
+            <div className="li-qty">Cant.</div>
+            <div className="li-amt">Importe</div>
+          </div>
+
+          <div className="li">
+            <div>
+              {client.retainerLabel || 'Cuota mensual'}
+              <div className="li-sub">Cuota mensual fija — incluye gestión de comunidad y reporting</div>
             </div>
+            <div className="li-qty">1</div>
+            <div className="li-amt">{eur(totals.retainer)}</div>
+          </div>
+
+          {Object.values(monthWorksAll.reduce((acc, w) => {
+            const tId = w.type;
+            if (!acc[tId]) acc[tId] = { type: workTypes.find(t => t.id === tId) || getType(tId), items: [], total: 0 };
+            acc[tId].items.push(w);
+            acc[tId].total += w.price;
+            return acc;
+          }, {} as Record<string, any>)).map((g: any) => (
+            <div className="li" key={g.type.id}>
+              <div>
+                {g.type.name}
+                <div className="li-sub">{g.items.map((it: any) => it.title.length > 38 ? it.title.slice(0, 36) + '…' : it.title).join(' · ')}</div>
+              </div>
+              <div className="li-qty">{g.items.length}</div>
+              <div className="li-amt">{eur(g.total)}</div>
+            </div>
+          ))}
+
+          <div className="totals">
+            <div className="li">
+              <div className="text-muted" style={{ fontSize: 12 }}>Subtotal</div>
+              <div />
+              <div className="li-amt mono">{eur(totals.total)}</div>
+            </div>
+          </div>
+
+          <div className="grand">
+            <div className="lbl">Total</div>
+            <div className="amt">{eur(totals.total)}</div>
           </div>
         </div>
       </div>

@@ -339,6 +339,32 @@ export default function ClienteWorkDetailPage({
 
   const typeDef = workTypes.find(t => t.id === work.type) || getType(work.type);
 
+  let displayNotes = work.notes || '';
+  let meetingTime = '';
+  let meetingLocation = '';
+  let meetingLink = '';
+  let meetingObjectives = '';
+
+  if (work.type === 'reunion' || typeDef?.id === 'reunion') {
+    const timeMatch = displayNotes.match(/\*\*Hora:\*\* (.*)/);
+    if (timeMatch) meetingTime = timeMatch[1].trim();
+
+    const locMatch = displayNotes.match(/\*\*Ubicación:\*\* (.*)/);
+    if (locMatch) meetingLocation = locMatch[1].trim();
+
+    const linkMatch = displayNotes.match(/\*\*Enlace:\*\* (.*)/);
+    if (linkMatch) meetingLink = linkMatch[1].trim();
+
+    const objMatch = displayNotes.match(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)/);
+    if (objMatch) meetingObjectives = objMatch[1].trim();
+
+    displayNotes = displayNotes.replace(/\*\*Hora:\*\* .*\n?/g, '');
+    displayNotes = displayNotes.replace(/\*\*Ubicación:\*\* .*\n?/g, '');
+    displayNotes = displayNotes.replace(/\*\*Enlace:\*\* .*\n?/g, '');
+    displayNotes = displayNotes.replace(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)\n?/g, '');
+    displayNotes = displayNotes.replace(/^---\n/, '').trim();
+  }
+
   return (
     <div
       className="client-app-shell"
@@ -422,6 +448,16 @@ export default function ClienteWorkDetailPage({
                       alt={att.name}
                       style={{ width: '100%', aspectRatio: '4/5', objectFit: 'contain', background: 'var(--paper-2)' }}
                     />
+                  ) : att.type === 'text' ? (
+                    <div style={{ width: '100%', padding: '24px', textAlign: 'left', background: 'var(--paper)' }}>
+                      <div className="row gap-2" style={{ alignItems: 'center', marginBottom: 16 }}>
+                        <Icon name="file" size={20} style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: 16, fontWeight: 600 }}>{att.name}</span>
+                      </div>
+                      <div style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--ink-2)' }}>
+                        {att.content}
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
                       <div
@@ -519,14 +555,47 @@ export default function ClienteWorkDetailPage({
           </div>
         </div>
 
+        {/* Meeting Details */}
+        {(work.type === 'reunion' || typeDef?.id === 'reunion') && (
+          <div className="card card-pad mt-4 fade-in" style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--line)' }}>
+            <h3 className="h3 mb-4" style={{ fontSize: 14 }}>Detalles de la reunión</h3>
+            <div className="col gap-4">
+              <div className="row gap-4" style={{ flexWrap: 'wrap' }}>
+                <div className="flex-1" style={{ minWidth: 200 }}>
+                  <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Fecha y hora</div>
+                  <div style={{ fontSize: 14 }}>
+                    {work.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {meetingTime ? ` a las ${meetingTime}` : ` a las ${work.date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                  </div>
+                </div>
+                {(meetingLocation || meetingLink) && (
+                  <div className="flex-1" style={{ minWidth: 200 }}>
+                    <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Ubicación / Enlace</div>
+                    <div className="col gap-1">
+                      {meetingLocation && <div style={{ fontSize: 14 }}>{meetingLocation}</div>}
+                      {meetingLink && <a href={meetingLink} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: 'var(--accent)', textDecoration: 'underline' }}>{meetingLink}</a>}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {meetingObjectives && (
+                <div className="mt-2">
+                  <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Objetivos</div>
+                  <div style={{ fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.5, background: 'var(--paper-2)', padding: 12, borderRadius: 8, border: '1px solid var(--line)' }}>{meetingObjectives}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Admin notes */}
-        {work.notes && (
+        {displayNotes && (
           <div className="card card-pad mt-4" style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--line)' }}>
             <div className="eyebrow mb-2" style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Notas y copy de {adminName}
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-2)', whiteSpace: 'pre-wrap' }}>
-              {work.notes}
+              {displayNotes}
             </div>
           </div>
         )}

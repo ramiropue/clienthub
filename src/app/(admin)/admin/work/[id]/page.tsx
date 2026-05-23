@@ -23,8 +23,11 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
   const [profileName, setProfileName] = useState('Antía');
   const [editOpen, setEditOpen] = useState(false);
 
-  // Editable fields
   const [notes, setNotes] = useState('');
+  const [meetingTime, setMeetingTime] = useState('');
+  const [meetingLocation, setMeetingLocation] = useState('');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [meetingObjectives, setMeetingObjectives] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [comments, setComments] = useState<any[]>([]);
@@ -131,9 +134,40 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
           publishedAt: w.published_at ? new Date(w.published_at) : null
         };
         setWork(mappedWork);
-        setNotes(mappedWork.notes || '');
         const c = allClients.find(client => client.id === mappedWork.clientId) || null;
         setClient(c);
+
+        let initialNotes = mappedWork.notes || '';
+        let mTime = '';
+        let mLocation = '';
+        let mLink = '';
+        let mObjectives = '';
+
+        if (mappedWork.type === 'reunion') {
+          const timeMatch = initialNotes.match(/\*\*Hora:\*\* (.*)/);
+          if (timeMatch) mTime = timeMatch[1].trim();
+
+          const locMatch = initialNotes.match(/\*\*Ubicación:\*\* (.*)/);
+          if (locMatch) mLocation = locMatch[1].trim();
+
+          const linkMatch = initialNotes.match(/\*\*Enlace:\*\* (.*)/);
+          if (linkMatch) mLink = linkMatch[1].trim();
+
+          const objMatch = initialNotes.match(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)/);
+          if (objMatch) mObjectives = objMatch[1].trim();
+
+          initialNotes = initialNotes.replace(/\*\*Hora:\*\* .*\n?/g, '');
+          initialNotes = initialNotes.replace(/\*\*Ubicación:\*\* .*\n?/g, '');
+          initialNotes = initialNotes.replace(/\*\*Enlace:\*\* .*\n?/g, '');
+          initialNotes = initialNotes.replace(/\*\*Objetivos:\*\*\n([\s\S]*?)(?=\n\n---|$)\n?/g, '');
+          initialNotes = initialNotes.replace(/^---\n/, '').trim();
+        }
+
+        setNotes(initialNotes);
+        setMeetingTime(mTime);
+        setMeetingLocation(mLocation);
+        setMeetingLink(mLink);
+        setMeetingObjectives(mObjectives);
       }
 
       const { data: s } = await supabase.from('settings').select('profile_name').single();
@@ -209,7 +243,19 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
   const handleSaveNotes = async () => {
     if (!work) return;
     setSaving(true);
-    const { error } = await supabase.from('works').update({ notes }).eq('id', work.id);
+    let finalNotes = notes.trim() || null;
+    if (work.type === 'reunion') {
+      const meetingDetails = [];
+      if (meetingTime) meetingDetails.push(`**Hora:** ${meetingTime}`);
+      if (meetingLocation.trim()) meetingDetails.push(`**Ubicación:** ${meetingLocation.trim()}`);
+      if (meetingLink.trim()) meetingDetails.push(`**Enlace:** ${meetingLink.trim()}`);
+      if (meetingObjectives.trim()) meetingDetails.push(`**Objetivos:**\n${meetingObjectives.trim()}`);
+      
+      if (meetingDetails.length > 0) {
+        finalNotes = meetingDetails.join('\n\n') + (finalNotes ? `\n\n---\n${finalNotes}` : '');
+      }
+    }
+    const { error } = await supabase.from('works').update({ notes: finalNotes }).eq('id', work.id);
     setSaving(false);
     if (!error) {
       setToast('Notas guardadas');
@@ -407,6 +453,38 @@ export default function AdminWorkDetailPage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {work.type === 'reunion' && (
+          <div className="mb-6 card card-pad" style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 12 }}>
+            <h3 className="h3 mb-4" style={{ fontSize: 14 }}>Detalles de la reunión</h3>
+            <div className="col gap-4">
+              <div className="row gap-4" style={{ flexWrap: 'wrap' }}>
+                <div className="flex-1" style={{ minWidth: 200 }}>
+                  <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Fecha y hora</div>
+                  <div style={{ fontSize: 14 }}>
+                    {work.date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {meetingTime ? ` a las ${meetingTime}` : ` a las ${work.date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                  </div>
+                </div>
+                {(meetingLocation || meetingLink) && (
+                  <div className="flex-1" style={{ minWidth: 200 }}>
+                    <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Ubicación / Enlace</div>
+                    <div className="col gap-1">
+                      {meetingLocation && <div style={{ fontSize: 14 }}>{meetingLocation}</div>}
+                      {meetingLink && <a href={meetingLink} target="_blank" rel="noreferrer" style={{ fontSize: 14, color: 'var(--accent)', textDecoration: 'underline' }}>{meetingLink}</a>}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {meetingObjectives && (
+                <div className="mt-2">
+                  <div className="eyebrow" style={{ color: 'var(--muted)', marginBottom: 4 }}>Objetivos</div>
+                  <div style={{ fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.5, background: 'var(--card)', padding: 12, borderRadius: 8, border: '1px solid var(--line)' }}>{meetingObjectives}</div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

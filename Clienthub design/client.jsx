@@ -269,32 +269,18 @@ function ClienteInvoice({ client, works, monthYear }) {
             <div />
             <div className="li-amt mono">{eurFull(totals.total)}</div>
           </div>
-          <div className="li">
-            <div className="text-muted" style={{ fontSize: 12 }}>IVA (21%)</div>
-            <div />
-            <div className="li-amt mono">{eurFull(totals.total * 0.21)}</div>
-          </div>
-          <div className="li">
-            <div className="text-muted" style={{ fontSize: 12 }}>IRPF (-15%)</div>
-            <div />
-            <div className="li-amt mono">−{eurFull(totals.total * 0.15)}</div>
-          </div>
         </div>
 
         <div className="grand">
           <div className="lbl">Total a pagar</div>
-          <div className="amt">{eurFull(totals.total * 1.06)}</div>
+          <div className="amt">{eurFull(totals.total)}</div>
         </div>
 
-        <div className="text-muted mt-4" style={{ fontSize: 11 }}>
-          Transferencia a ES12 0182 0000 0000 0000 0000 · vencimiento a 15 días.
-        </div>
       </div>
 
       <div className="client-section" style={{ paddingTop: 6 }}>
         <div className="row gap-2">
           <Button variant="ghost" icon="download" style={{ flex: 1 }}>Descargar PDF</Button>
-          <Button variant="primary" icon="external" style={{ flex: 1 }}>Pagar</Button>
         </div>
       </div>
     </div>
