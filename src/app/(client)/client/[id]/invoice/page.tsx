@@ -89,7 +89,7 @@ export default function ClienteInvoicePage({
     setDownloading(true);
     try {
       const html2pdf = (await import('html2pdf.js')).default;
-      const opt = {
+      const opt: any = {
         margin: 0,
         filename: `Factura_${client?.name?.replace(/ /g, '_')}_${MONTH_NAMES[my.month]}_${my.year}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },

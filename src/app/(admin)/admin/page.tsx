@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { totalFor, eur, MONTH_NAMES } from '@/lib/mock-data';
+import { totalFor, eur, MONTH_NAMES, getType } from '@/lib/mock-data';
 import { getClients, getWorks, getWorkTypes, Client, Work, WorkType } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { SectionTitle } from '@/components/shared/section-title';
