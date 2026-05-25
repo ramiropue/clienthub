@@ -29,6 +29,7 @@ export interface Work {
   date: Date;
   status: string;
   price: number;
+  quantity?: number;
   thumb: string | null;
   notes: string | null;
   previewUrl?: string | null;
@@ -74,6 +75,7 @@ function mapClient(c: any): Client {
 function mapWork(w: any): Work {
   return {
     ...w,
+    quantity: w.quantity != null ? Number(w.quantity) : 1,
     clientId: w.client_id,
     date: new Date(w.date),
     previewUrl: w.preview_url ?? null,

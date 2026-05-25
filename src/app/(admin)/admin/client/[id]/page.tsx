@@ -695,9 +695,10 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
           {Object.values(monthWorksAll.reduce((acc, w) => {
             const tId = w.type;
-            if (!acc[tId]) acc[tId] = { type: workTypes.find(t => t.id === tId) || getType(tId), items: [], total: 0 };
+            if (!acc[tId]) acc[tId] = { type: workTypes.find(t => t.id === tId) || getType(tId), items: [], total: 0, qty: 0 };
             acc[tId].items.push(w);
             acc[tId].total += w.price;
+            acc[tId].qty += (w.quantity ?? 1);
             return acc;
           }, {} as Record<string, any>)).map((g: any) => (
             <div className="li" key={g.type.id}>
@@ -705,7 +706,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
                 {g.type.name}
                 <div className="li-sub">{g.items.map((it: any) => it.title.length > 38 ? it.title.slice(0, 36) + '…' : it.title).join(' · ')}</div>
               </div>
-              <div className="li-qty">{g.items.length}</div>
+              <div className="li-qty">{g.qty}</div>
               <div className="li-amt">{eur(g.total)}</div>
             </div>
           ))}

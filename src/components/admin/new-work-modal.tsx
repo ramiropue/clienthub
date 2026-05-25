@@ -33,6 +33,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   const [meetingLocation, setMeetingLocation] = useState('');
   const [meetingLink, setMeetingLink] = useState('');
   const [meetingObjectives, setMeetingObjectives] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [price, setPrice]       = useState(65);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [linkInputOpen, setLinkInputOpen] = useState(false);
@@ -57,8 +58,15 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   // Auto-set price when work type changes
   useEffect(() => {
     const t = workTypes.find(w => w.id === typeId);
-    if (t) setPrice(t.price);
-  }, [typeId, workTypes]);
+    if (t) {
+      if (t.unit.toLowerCase().startsWith('hora') || t.unit.toLowerCase() === 'h') {
+        setPrice(t.price * quantity);
+      } else {
+        setPrice(t.price);
+        if (quantity !== 1) setQuantity(1);
+      }
+    }
+  }, [typeId, workTypes, quantity]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -79,6 +87,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
       setLinkUrl('');
       setLinkName('');
       setUploadError(null);
+      setQuantity(1);
     }
   }, [open]);
 
@@ -174,6 +183,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
       date: finalDate,
       status: finalStatus,
       price,
+      quantity,
       notes: finalNotes,
       preview_url: attachments.length > 0 || scriptText.trim() || scriptLink.trim() ? JSON.stringify([
         ...(scriptText.trim() ? [{ id: 'script-text-' + Date.now(), name: 'Guion / Propuesta (Texto)', type: 'text', content: scriptText.trim() }] : []),
@@ -207,7 +217,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
   };
 
   const selectedType = workTypes.find(w => w.id === typeId);
-  const isContenido = !selectedType || selectedType.group === 'contenido';
+  const isContenido = !selectedType || selectedType.group === 'contenido' || selectedType.id === 'puntual';
 
   if (!open) return null;
 
@@ -270,7 +280,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
                       <Icon name={t.icon} size={14} />
                       <span className="t-name">{t.name}</span>
                     </div>
-                    <span className="t-price">{eur(t.price)} / {t.unit}</span>
+                    <span className="t-price">{t.id === 'puntual' ? 'Personalizado' : `${eur(t.price)} / ${t.unit}`}</span>
                   </button>
                 ))}
               </div>
@@ -289,6 +299,19 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
 
             {/* Fecha y precio */}
             <div className="row gap-3">
+              {(selectedType?.unit.toLowerCase().startsWith('hora') || selectedType?.unit.toLowerCase() === 'h') && (
+                <div className="field flex-1">
+                  <label>Horas trabajadas</label>
+                  <input
+                    className="input mono"
+                    type="number"
+                    value={quantity}
+                    onChange={e => setQuantity(Number(e.target.value) || 1)}
+                    min={0.5}
+                    step={0.5}
+                  />
+                </div>
+              )}
               <div className="field flex-1">
                 <label>Fecha publicación</label>
                 <input
@@ -299,12 +322,12 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
                 />
               </div>
               <div className="field flex-1">
-                <label>Precio (€)</label>
+                <label>{(selectedType?.unit.toLowerCase().startsWith('hora') || selectedType?.unit.toLowerCase() === 'h') ? 'Precio Total (€)' : 'Precio (€)'}</label>
                 <input
                   className="input mono"
                   type="number"
                   value={price}
-                  onChange={e => setPrice(Number(e.target.value))}
+                  onChange={e => setPrice(Number(e.target.value) || 0)}
                   min={0}
                 />
               </div>

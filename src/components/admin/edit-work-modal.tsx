@@ -28,6 +28,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
   const [meetingLocation, setMeetingLocation] = useState('');
   const [meetingLink, setMeetingLink] = useState('');
   const [meetingObjectives, setMeetingObjectives] = useState('');
+  const [quantity, setQuantity] = useState(work?.quantity || 1);
   const [price, setPrice]       = useState(work?.price || 65);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
@@ -45,6 +46,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
       setTypeId(work.type);
       setTitle(work.title);
       setStatus(work.status);
+      setQuantity(work.quantity || 1);
       setPrice(work.price);
       setError('');
       
@@ -95,7 +97,23 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
     }
   }, [open, work]);
 
-
+  // Auto-set price when work type changes (only if it wasn't just initialized)
+  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    if (!isInitialized && work) {
+      setIsInitialized(true);
+      return;
+    }
+    const t = workTypes.find(w => w.id === typeId);
+    if (t) {
+      if (t.unit.toLowerCase().startsWith('hora') || t.unit.toLowerCase() === 'h') {
+        setPrice(t.price * quantity);
+      } else {
+        setPrice(t.price);
+        if (quantity !== 1) setQuantity(1);
+      }
+    }
+  }, [typeId, workTypes, quantity]);
 
   // Close on Escape
   useEffect(() => {
@@ -139,6 +157,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
       date: finalDate,
       status: finalStatus,
       price,
+      quantity,
       notes: finalNotes,
     }).eq('id', work.id);
 
@@ -156,7 +175,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
 
 
   const selectedType = workTypes.find(w => w.id === typeId);
-  const isContenido = !selectedType || selectedType.group === 'contenido';
+  const isContenido = !selectedType || selectedType.group === 'contenido' || selectedType.id === 'puntual';
 
   if (!open) return null;
 
@@ -219,7 +238,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
                       <Icon name={t.icon} size={14} />
                       <span className="t-name">{t.name}</span>
                     </div>
-                    <span className="t-price">{eur(t.price)} / {t.unit}</span>
+                    <span className="t-price">{t.id === 'puntual' ? 'Personalizado' : `${eur(t.price)} / ${t.unit}`}</span>
                   </button>
                 ))}
               </div>
@@ -285,6 +304,19 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
 
             {/* Fecha y precio */}
             <div className="row gap-3">
+              {(selectedType?.unit.toLowerCase().startsWith('hora') || selectedType?.unit.toLowerCase() === 'h') && (
+                <div className="field flex-1">
+                  <label>Horas trabajadas</label>
+                  <input
+                    className="input mono"
+                    type="number"
+                    value={quantity}
+                    onChange={e => setQuantity(Number(e.target.value) || 1)}
+                    min={0.5}
+                    step={0.5}
+                  />
+                </div>
+              )}
               <div className="field flex-1">
                 <label>Fecha publicación</label>
                 <input
@@ -295,12 +327,12 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
                 />
               </div>
               <div className="field flex-1">
-                <label>Precio (€)</label>
+                <label>{(selectedType?.unit.toLowerCase().startsWith('hora') || selectedType?.unit.toLowerCase() === 'h') ? 'Precio Total (€)' : 'Precio (€)'}</label>
                 <input
                   className="input mono"
                   type="number"
                   value={price}
-                  onChange={e => setPrice(Number(e.target.value))}
+                  onChange={e => setPrice(Number(e.target.value) || 0)}
                   min={0}
                 />
               </div>

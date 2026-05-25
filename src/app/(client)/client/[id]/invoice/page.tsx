@@ -72,11 +72,12 @@ export default function ClienteInvoicePage({
   const total = variable + retainer;
   
   // group by type
-  const byType: Record<string, { type: any, items: any[], total: number }> = {};
+  const byType: Record<string, { type: any, items: any[], total: number, qty: number }> = {};
   billableList.forEach((w: any) => {
-    if (!byType[w.type]) byType[w.type] = { type: workTypes.find(t => t.id === w.type) || getType(w.type), items: [], total: 0 };
+    if (!byType[w.type]) byType[w.type] = { type: workTypes.find(t => t.id === w.type) || getType(w.type), items: [], total: 0, qty: 0 };
     byType[w.type].items.push(w);
     byType[w.type].total += w.price;
+    byType[w.type].qty += (w.quantity ?? 1);
   });
   const groups = Object.values(byType);
 
@@ -175,7 +176,7 @@ export default function ClienteInvoicePage({
               {g.type.name}
               <div className="li-sub">{g.items.map(it => it.title.length > 38 ? it.title.slice(0, 36) + '…' : it.title).join(' · ')}</div>
             </div>
-            <div className="li-qty">{g.items.length}</div>
+            <div className="li-qty">{g.qty}</div>
             <div className="li-amt">{eurFull(g.total)}</div>
           </div>
         ))}
