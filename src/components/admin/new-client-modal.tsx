@@ -6,6 +6,7 @@ import { ButtonCustom } from '@/components/ui/button-custom';
 import { createClient } from '@/lib/supabase/client';
 import { createClient as createSupabaseJs } from '@supabase/supabase-js';
 import { updateClientAction } from '@/app/actions/clients';
+import { inviteClient } from '@/app/actions/auth';
 
 // ── Palette suggestions ───────────────────────────────────────
 const COLOR_PALETTE = [
@@ -351,38 +352,13 @@ export function NewClientModal({ open, onClose, onCreated, initialData }: NewCli
         return; 
       }
 
-      // Create auth user without affecting the admin session
-      const tempSupabase = createSupabaseJs(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-      );
-
-      // Sign up with a random complex password
-      const randomPassword = 'Temp_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '!';
-      const { error: signUpError } = await tempSupabase.auth.signUp({
-        email: email.trim(),
-        password: randomPassword,
-        options: {
-          data: { role: 'client', client_id: id }
-        }
-      });
-
-      if (signUpError) {
-        setError('Cliente guardado, pero falló Auth: ' + signUpError.message);
+      // Send an official invitation using the Admin API
+      const result = await inviteClient(email.trim(), id);
+      
+      if (!result.success) {
+        setError('Cliente guardado, pero falló la invitación: ' + result.error);
         setSaving(false);
         return; // Don't close modal so they can see it
-      } else {
-        // Send reset password email so they can set their own password
-        const { error: resetError } = await tempSupabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: window.location.origin + '/auth/callback?next=/reset-password',
-        });
-        
-        if (resetError) {
-          setError('Cliente guardado, pero falló el correo de reset: ' + resetError.message);
-          setSaving(false);
-          return;
-        }
       }
 
       setSaving(false);
