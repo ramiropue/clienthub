@@ -45,7 +45,7 @@ export function NewWorkModal({ open, onClose, clients, preselectClientId, presel
 
   // Fetch work types
   useEffect(() => {
-    getWorkTypes().then(setWorkTypes);
+    getWorkTypes(false).then(setWorkTypes);
   }, []);
 
   // Update clientId if preselectClientId changes

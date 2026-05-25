@@ -43,6 +43,7 @@ export interface WorkType {
   unit: string;
   group: string;
   icon: string;
+  isDeleted?: boolean;
 }
 
 export interface Settings {
@@ -89,6 +90,7 @@ function mapWorkType(wt: any): WorkType {
     unit: wt.unit,
     group: wt.group_name,
     icon: wt.icon,
+    isDeleted: wt.is_deleted ?? false,
   };
 }
 
@@ -128,8 +130,13 @@ export async function getWorksForClient(clientId: string): Promise<Work[]> {
   return (data || []).map(mapWork);
 }
 
-export async function getWorkTypes(): Promise<WorkType[]> {
-  const { data, error } = await supabase.from('work_types').select('*');
+export async function getWorkTypes(includeDeleted: boolean = false): Promise<WorkType[]> {
+  let query = supabase.from('work_types').select('*');
+  if (!includeDeleted) {
+    query = query.neq('is_deleted', true);
+  }
+  
+  const { data, error } = await query;
   if (error) {
     console.error('Error fetching work types:', error);
     return [];
@@ -156,6 +163,15 @@ export async function saveWorkType(workType: WorkType, isNew: boolean): Promise<
     return null;
   }
   return mapWorkType(data);
+}
+
+export async function deleteWorkType(id: string): Promise<boolean> {
+  const { error } = await supabase.from('work_types').update({ is_deleted: true }).eq('id', id);
+  if (error) {
+    console.error('Error deleting work type:', error);
+    return false;
+  }
+  return true;
 }
 
 export async function getSettings(): Promise<Settings> {

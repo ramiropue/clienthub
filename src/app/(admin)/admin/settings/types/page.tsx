@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { getWorkTypes, saveWorkType, WorkType } from '@/lib/data';
+import { getWorkTypes, saveWorkType, deleteWorkType, WorkType } from '@/lib/data';
 import { eur } from '@/lib/mock-data';
 import { Icon } from '@/components/ui/icon';
 import { ButtonCustom } from '@/components/ui/button-custom';
@@ -15,7 +15,7 @@ export default function AdminTypesPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await getWorkTypes();
+    const data = await getWorkTypes(false); // Only active ones
     setTypes(data);
     setLoading(false);
   };
@@ -29,6 +29,13 @@ export default function AdminTypesPage() {
     setModalOpen(false);
     setEditingType(null);
     loadData();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`¿Seguro que quieres eliminar el tipo de trabajo "${name}"? Los trabajos antiguos se mantendrán.`)) {
+      await deleteWorkType(id);
+      loadData();
+    }
   };
 
   // Group work types by their 'group' property
@@ -87,12 +94,17 @@ export default function AdminTypesPage() {
                         </div>
                         <span className="t-name" style={{ fontSize: 14, fontWeight: 500 }}>{t.name}</span>
                       </div>
-                      <button className="btn-icon" onClick={() => {
-                        setEditingType(t);
-                        setModalOpen(true);
-                      }}>
-                        <Icon name="edit" size={16} />
-                      </button>
+                      <div className="row gap-2">
+                        <button className="btn-icon" onClick={() => {
+                          setEditingType(t);
+                          setModalOpen(true);
+                        }}>
+                          <Icon name="edit" size={16} />
+                        </button>
+                        <button className="btn-icon" style={{ color: 'var(--error)' }} onClick={() => handleDelete(t.id, t.name)}>
+                          <Icon name="trash" size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-2" style={{ padding: '8px 12px', background: 'var(--bg)', borderRadius: 6, display: 'inline-flex', alignSelf: 'flex-start' }}>
                       <span className="t-price" style={{ margin: 0, fontWeight: 600 }}>{eur(t.price)} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>/ {t.unit}</span></span>

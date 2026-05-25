@@ -31,7 +31,7 @@ export default function ClienteCalendarPage({ params }: { params: Promise<{ id: 
   };
 
   useEffect(() => {
-    Promise.all([getClient(clientId), getWorksForClient(clientId), getWorkTypes()]).then(([c, w, wt]) => {
+    Promise.all([getClient(clientId), getWorksForClient(clientId), getWorkTypes(true)]).then(([c, w, wt]) => {
       setClient(c);
       setWorks(w);
       setWorkTypes(wt);

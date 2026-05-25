@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
   useEffect(() => { loadData(); }, []);
 
   function loadData() {
-    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes(true)]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
       setWorkTypes(wt);

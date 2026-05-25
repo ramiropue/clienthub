@@ -98,7 +98,7 @@ export default function AdminClientDetailPage({ params }: { params: Promise<{ id
 
   async function loadWorks() {
     try {
-      const [c, w, wt] = await Promise.all([getClient(clientId), getWorksForClient(clientId), getWorkTypes()]);
+      const [c, w, wt] = await Promise.all([getClient(clientId), getWorksForClient(clientId), getWorkTypes(true)]);
       setClient(c);
       setWorks(w);
       setWorkTypes(wt);

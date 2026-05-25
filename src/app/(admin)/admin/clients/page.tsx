@@ -173,7 +173,7 @@ export default function ClientsPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes(true)]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
       setWorkTypes(wt);
@@ -182,7 +182,7 @@ export default function ClientsPage() {
   }, []);
 
   function reload() {
-    Promise.all([getClients(), getWorks(), getWorkTypes()]).then(([c, w, wt]) => {
+    Promise.all([getClients(), getWorks(), getWorkTypes(true)]).then(([c, w, wt]) => {
       setClients(c);
       setWorks(w);
       setWorkTypes(wt);

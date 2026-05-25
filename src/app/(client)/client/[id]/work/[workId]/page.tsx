@@ -89,7 +89,7 @@ export default function ClienteWorkDetailPage({
       // 3. Fetch admin settings and work types
       const [{ data: s }, wt] = await Promise.all([
         supabase.from('settings').select('profile_name').single(),
-        getWorkTypes()
+        getWorkTypes(true)
       ]);
       if (s?.profile_name) {
         setAdminName(s.profile_name);

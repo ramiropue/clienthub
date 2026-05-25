@@ -35,7 +35,7 @@ export function EditWorkModal({ open, onClose, clients, work, onUpdated }: EditW
 
   // Fetch work types
   useEffect(() => {
-    getWorkTypes().then(setWorkTypes);
+    getWorkTypes(false).then(setWorkTypes);
   }, []);
 
   // Reset form when modal opens

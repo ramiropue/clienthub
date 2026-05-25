@@ -28,7 +28,7 @@ export default function ClienteInvoicePage({
       getClient(clientId), 
       getWorksForClient(clientId),
       getSettings(),
-      getWorkTypes()
+      getWorkTypes(true)
     ]).then(([c, w, s, wt]) => {
       setClient(c);
       setWorks(w);
